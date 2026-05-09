@@ -2,10 +2,13 @@
 
 import os
 from typing import List
+from dotenv import load_dotenv
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+load_dotenv()
 
 VECTOR_DB_PATH = "vector_store"
 
@@ -16,12 +19,13 @@ embeddings = OpenAIEmbeddings(
     base_url="https://openrouter.ai/api/v1"
 )
 
+
 # -----------------------------
 # 1. Load & Chunk Documents
 # -----------------------------
 def ingest_document(file_path: str):
     """Load a PDF or text file, split into chunks, and store in FAISS DB."""
-    
+
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
 
@@ -29,7 +33,7 @@ def ingest_document(file_path: str):
     if ext.endswith(".pdf"):
         loader = PyPDFLoader(file_path)
     elif ext.endswith((".txt", ".text", ".md")):
-        loader = TextLoader(file_path)
+        loader = TextLoader(file_path, encoding="utf-8")   # Fix: encoding prevents Windows crash
     else:
         raise ValueError(f"Unsupported file type: {file_path}. Supported: .pdf, .txt, .text, .md")
 

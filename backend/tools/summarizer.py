@@ -1,17 +1,21 @@
 # backend/tools/summarizer.py
 
 import json
-from typing import List, Dict, Optional
-from pydantic import BaseModel, Field, ValidationError
-from backend.config import LLM_MODEL  # Make sure you have LLM_MODEL in config.py
-from openai import OpenAI
 import os
+from typing import List, Dict, Optional
+from dotenv import load_dotenv
+from pydantic import BaseModel, Field, ValidationError
+from openai import OpenAI
+from backend.config import LLM_MODEL
 
-# Initialize OpenAI client (API key automatically picked from env OPENAI_API_KEY)
+load_dotenv()
+
+# Initialize OpenAI client pointed at OpenRouter
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=os.getenv("OPEN_ROUTER_API_KEY")
 )
+
 
 # ----------------------
 # Pydantic schemas
@@ -21,16 +25,18 @@ class ActionItem(BaseModel):
     task: str
     deadline: Optional[str] = None
 
+
 class ProsCons(BaseModel):
     pros: List[str] = []
     cons: List[str] = []
+
 
 class SummaryOutput(BaseModel):
     summary: List[str] = Field(..., description="Concise bullet points")
     pros_cons: Optional[ProsCons] = None
     action_items: List[ActionItem] = []
     citations: List[str] = []
-    raw: Optional[str] = None  # keep raw text as fallback / debugging
+    raw: Optional[str] = None   # keep raw text as fallback / debugging
 
 
 # ----------------------
@@ -49,7 +55,7 @@ PROMPT_SCHEMA_EXAMPLE = {
 # ----------------------
 def _build_prompt(retrieved_chunks: List[dict]) -> str:
     """
-    Build the prompt text to give the LLM. 
+    Build the prompt text to give the LLM.
     retrieved_chunks: list of dicts with keys: source_id, chunk_id, text, score
     """
     context_parts = []
@@ -59,7 +65,8 @@ def _build_prompt(retrieved_chunks: List[dict]) -> str:
     context = "\n---\n".join(context_parts)
 
     prompt = f"""
-You are a research assistant. Given the context excerpts below, produce a JSON object ONLY (no extra explanation, no surrounding text).
+You are a research assistant. Given the context excerpts below, produce a JSON object ONLY
+(no extra explanation, no surrounding text).
 The JSON must follow this schema exactly:
 
 - summary: array of short bullet strings (concise takeaways).
@@ -87,20 +94,17 @@ def _attempt_repair(raw_text: str) -> Optional[dict]:
     """
     If the model returns invalid JSON, try repairing it.
     """
-    repair_prompt = f"""
-The assistant returned text that is not valid JSON. Extract and return ONLY the valid JSON object that matches the schema described:
-
-Schema:
-- summary: list of short bullets
-- pros_cons: {{'pros': [...], 'cons': [...]}}, optional
-- action_items: list of {{'assignee', 'task', 'deadline'}}
-- citations: list of citation strings
-
-Here is the original (possibly invalid) output:
-\"\"\"{raw_text}\"\"\"
-
-Please return only the JSON object (no explanation).
-"""
+    repair_prompt = (
+        "The assistant returned text that is not valid JSON. "
+        "Extract and return ONLY the valid JSON object that matches the schema described:\n\n"
+        "Schema:\n"
+        "- summary: list of short bullets\n"
+        "- pros_cons: {'pros': [...], 'cons': [...]}, optional\n"
+        "- action_items: list of {'assignee', 'task', 'deadline'}\n"
+        "- citations: list of citation strings\n\n"
+        f"Here is the original (possibly invalid) output:\n\"\"\"{raw_text}\"\"\"\n\n"
+        "Please return only the JSON object (no explanation)."
+    )
     resp = client.chat.completions.create(
         model=LLM_MODEL,
         messages=[{"role": "user", "content": repair_prompt}],
