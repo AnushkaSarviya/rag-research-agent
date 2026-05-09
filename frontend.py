@@ -104,6 +104,47 @@ h1 {
     font-weight: 600;
 }
 
+/* ── Tool Decision Badge ─────────────────────────────────── */
+.tool-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    margin-bottom: 12px;
+    border: 1px solid;
+}
+
+.tool-badge-research {
+    background: rgba(79, 172, 254, 0.15);
+    color: #4facfe;
+    border-color: rgba(79, 172, 254, 0.4);
+    box-shadow: 0 0 12px rgba(79, 172, 254, 0.2);
+}
+
+.tool-badge-web {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34d399;
+    border-color: rgba(52, 211, 153, 0.4);
+    box-shadow: 0 0 12px rgba(52, 211, 153, 0.2);
+}
+
+.tool-badge-notool {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+    border-color: rgba(148, 163, 184, 0.3);
+}
+
+.tool-input-hint {
+    font-size: 0.72rem;
+    color: #64748b;
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
 /* Hide Streamlit Branding */
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
@@ -112,45 +153,133 @@ header {visibility: hidden;}
 """
 st.markdown(custom_css, unsafe_allow_html=True)
 
-# ------------------- STATE INIT ---------------------
+# ───────────── TOOL BADGE HELPER ─────────────────────────────────────────────
+TOOL_ICONS = {
+    "research_tool": ("📚", "tool-badge-research", "RAG · Knowledge Base"),
+    "web_search":    ("🌐", "tool-badge-web",      "Web Search · Tavily"),
+    "no_tool":       ("💬", "tool-badge-notool",   "Direct LLM · No Tool"),
+}
+
+def render_tool_badge(tool_decision: dict):
+    """Render a pill badge showing which tool the router selected."""
+    tool = tool_decision.get("tool", "no_tool")
+    tool_input = tool_decision.get("input", "")
+    icon, css_class, label = TOOL_ICONS.get(tool, ("🔧", "tool-badge-notool", tool))
+
+    st.markdown(
+        f"""
+        <div class="tool-badge {css_class}">
+            {icon}&nbsp; Tool Router → <strong>{label}</strong>
+        </div>
+        <div class="tool-input-hint">🎯 Extracted input: <em>"{tool_input}"</em></div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# ───────────── RESPONSE RENDERER ─────────────────────────────────────────────
+def render_response(data: dict):
+    """Render the structured agent response, including tool decision badge."""
+
+    # Show tool routing badge if present
+    if "tool_decision" in data:
+        render_tool_badge(data["tool_decision"])
+
+    if "summary" in data and data["summary"]:
+        st.markdown("### 📝 Summary")
+        for item in data["summary"]:
+            st.markdown(f"- {item}")
+
+    if "pros_cons" in data and (
+        data["pros_cons"].get("pros") or data["pros_cons"].get("cons")
+    ):
+        c1, c2 = st.columns(2)
+        with c1:
+            if data["pros_cons"].get("pros"):
+                st.markdown("### ✅ Pros")
+                for pro in data["pros_cons"]["pros"]:
+                    st.markdown(f"- {pro}")
+        with c2:
+            if data["pros_cons"].get("cons"):
+                st.markdown("### ❌ Cons")
+                for con in data["pros_cons"]["cons"]:
+                    st.markdown(f"- {con}")
+
+    if "action_items" in data and data["action_items"]:
+        st.markdown("### 📋 Action Items")
+        for item in data["action_items"]:
+            assignee = item.get("assignee", "Unassigned")
+            task = item.get("task", "")
+            deadline = item.get("deadline", "No deadline")
+            st.markdown(f"- **{task}** (Assignee: {assignee}, Deadline: {deadline})")
+
+    if "citations" in data and data["citations"]:
+        st.markdown("### 📚 Citations")
+        for citation in data["citations"]:
+            st.markdown(f"- `{citation}`")
+
+    if "latency" in data:
+        st.caption(
+            f"⚡ Response time: {data['latency']}s | "
+            f"🤖 Model: {data.get('model_used', 'N/A')} | "
+            f"📌 Session: {data.get('session_id', 'N/A')}"
+        )
+
+# ───────────── STATE INIT ────────────────────────────────────────────────────
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# ------------------- SIDEBAR CONFIG -----------------
+# ───────────── SIDEBAR CONFIG ────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("<div class='sidebar-heading'>⚙️ Configuration</div>", unsafe_allow_html=True)
     st.markdown("---")
-    
+
     provider = st.radio("📡 Provider", ("Groq", "OpenRouter"), horizontal=True)
-    
+
     MODEL_NAMES_GROQ = ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"]
     MODEL_NAMES_OPENROUTER = ["meta-llama/llama-3.1-70b-instruct"]
-    
+
     if provider == "Groq":
         selected_model = st.selectbox("🤖 Model", MODEL_NAMES_GROQ)
     else:
         selected_model = st.selectbox("🤖 Model", MODEL_NAMES_OPENROUTER)
-        
+
     allow_web_search = st.toggle("🌐 Enable Web Search", value=True)
-    
+
+    # ── Tool Router toggle ───────────────────────────────────────────────────
+    st.markdown("---")
+    use_tool_routing = st.toggle(
+        "🧭 Enable Tool Router",
+        value=True,
+        help=(
+            "When ON, a dedicated LLM step first decides which tool (RAG, Web Search, "
+            "or none) to use before answering. This makes tool selection explicit and "
+            "transparent. Turn OFF to use the classic ReAct agent loop instead."
+        ),
+    )
+
+    if use_tool_routing:
+        st.caption("🟢 Tool Router **active** — the agent will decide which tool to invoke before responding.")
+    else:
+        st.caption("🔴 Tool Router **disabled** — using classic ReAct agent loop.")
+
     st.markdown("---")
     SYSTEM_PROMPT = st.text_area(
         "🧠 System Prompt",
         value="You are a Research & Summarization Agent. Be concise, factual, and professional.",
         height=150
     )
-    
+
     st.markdown("---")
     if st.button("🗑️ Clear Chat History", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
 
-# ------------------- MAIN LAYOUT -------------------
+# ───────────── MAIN LAYOUT ───────────────────────────────────────────────────
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
     if lottie_ai:
         st_lottie(lottie_ai, height=120, key="ai_robot")
-        
+
 st.markdown("<h1>Agentic Studio</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitle'>Experience the next generation of AI Research & Summarization</p>", unsafe_allow_html=True)
 
@@ -160,43 +289,9 @@ for message in st.session_state.messages:
         if message["role"] == "user":
             st.write(message["content"])
         else:
-            # Render structured response
-            data = message["content"]
-            if "summary" in data and data["summary"]:
-                st.markdown("### 📝 Summary")
-                for item in data["summary"]:
-                    st.markdown(f"- {item}")
+            render_response(message["content"])
 
-            if "pros_cons" in data and (data["pros_cons"].get("pros") or data["pros_cons"].get("cons")):
-                c1, c2 = st.columns(2)
-                with c1:
-                    if data["pros_cons"].get("pros"):
-                        st.markdown("### ✅ Pros")
-                        for pro in data["pros_cons"]["pros"]:
-                            st.markdown(f"- {pro}")
-                with c2:
-                    if data["pros_cons"].get("cons"):
-                        st.markdown("### ❌ Cons")
-                        for con in data["pros_cons"]["cons"]:
-                            st.markdown(f"- {con}")
-
-            if "action_items" in data and data["action_items"]:
-                st.markdown("### 📋 Action Items")
-                for item in data["action_items"]:
-                    assignee = item.get("assignee", "Unassigned")
-                    task = item.get("task", "")
-                    deadline = item.get("deadline", "No deadline")
-                    st.markdown(f"- **{task}** (Assignee: {assignee}, Deadline: {deadline})")
-
-            if "citations" in data and data["citations"]:
-                st.markdown("### 📚 Citations")
-                for citation in data["citations"]:
-                    st.markdown(f"- `{citation}`")
-            
-            if "latency" in data:
-                st.caption(f"⚡ Response time: {data['latency']}s | 🤖 Model: {data.get('model_used', 'N/A')}")
-
-# ------------------- CHAT INPUT --------------------
+# ───────────── CHAT INPUT ────────────────────────────────────────────────────
 API_URL = "http://127.0.0.1:9999/chat"
 
 if prompt := st.chat_input("Ask your agent a question or request research..."):
@@ -211,15 +306,21 @@ if prompt := st.chat_input("Ask your agent a question or request research..."):
         "model_provider": provider,
         "system_prompt": SYSTEM_PROMPT,
         "messages": [prompt],
-        "allow_search": allow_web_search
+        "allow_search": allow_web_search,
+        "use_tool_routing": use_tool_routing,   # send router toggle state
     }
 
     # Fetch response
     with st.chat_message("assistant"):
-        with st.spinner("Analyzing and researching... 🔮"):
+        spinner_msg = (
+            "🧭 Routing query to best tool… then researching…"
+            if use_tool_routing
+            else "Analyzing and researching... 🔮"
+        )
+        with st.spinner(spinner_msg):
             try:
                 response = requests.post(API_URL, json=payload, timeout=120)
-                
+
                 if response.status_code == 200:
                     data = response.json()
                     if "error" in data:
@@ -230,7 +331,7 @@ if prompt := st.chat_input("Ask your agent a question or request research..."):
                         st.rerun()
                 else:
                     st.error(f"❌ Server error {response.status_code}. Check backend logs.")
-            
+
             except requests.exceptions.ConnectionError:
                 st.error("❌ Cannot connect to the backend. Make sure the FastAPI server is running on port 9999.")
             except requests.exceptions.Timeout:
