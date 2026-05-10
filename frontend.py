@@ -4,7 +4,7 @@ import json
 from streamlit_lottie import st_lottie
 
 # ------------------- PAGE CONFIG --------------------
-st.set_page_config(page_title="Agentic Studio", page_icon="✨", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Agentic Studio", page_icon="✦", layout="wide", initial_sidebar_state="expanded")
 
 # ------------------- HELPER FUNCTIONS ----------------
 def load_lottieurl(url: str):
@@ -24,6 +24,13 @@ custom_css = """
 
 html, body, [class*="css"]  {
     font-family: 'Inter', sans-serif;
+}
+
+/* Aesthetic Dark Background */
+.stApp {
+    background-color: #0d1117 !important;
+    background-image: radial-gradient(ellipse at 50% -20%, #1f2937, #0d1117 80%) !important;
+    background-attachment: fixed !important;
 }
 
 /* Sidebar styling */
@@ -155,23 +162,23 @@ st.markdown(custom_css, unsafe_allow_html=True)
 
 # ───────────── TOOL BADGE HELPER ─────────────────────────────────────────────
 TOOL_ICONS = {
-    "research_tool": ("📚", "tool-badge-research", "RAG · Knowledge Base"),
-    "web_search":    ("🌐", "tool-badge-web",      "Web Search · Tavily"),
-    "no_tool":       ("💬", "tool-badge-notool",   "Direct LLM · No Tool"),
+    "research_tool": ("›", "tool-badge-research", "RAG · Knowledge Base"),
+    "web_search":    ("»", "tool-badge-web",      "Web Search · Tavily"),
+    "no_tool":       ("·", "tool-badge-notool",   "Direct LLM · No Tool"),
 }
 
 def render_tool_badge(tool_decision: dict):
     """Render a pill badge showing which tool the router selected."""
     tool = tool_decision.get("tool", "no_tool")
     tool_input = tool_decision.get("input", "")
-    icon, css_class, label = TOOL_ICONS.get(tool, ("🔧", "tool-badge-notool", tool))
+    icon, css_class, label = TOOL_ICONS.get(tool, ("▪", "tool-badge-notool", tool))
 
     st.markdown(
         f"""
         <div class="tool-badge {css_class}">
             {icon}&nbsp; Tool Router → <strong>{label}</strong>
         </div>
-        <div class="tool-input-hint">🎯 Extracted input: <em>"{tool_input}"</em></div>
+        <div class="tool-input-hint">> Extracted input: <em>"{tool_input}"</em></div>
         """,
         unsafe_allow_html=True,
     )
@@ -185,7 +192,7 @@ def render_response(data: dict):
         render_tool_badge(data["tool_decision"])
 
     if "summary" in data and data["summary"]:
-        st.markdown("### 📝 Summary")
+        st.markdown("### ≡ Summary")
         for item in data["summary"]:
             st.markdown(f"- {item}")
 
@@ -195,17 +202,17 @@ def render_response(data: dict):
         c1, c2 = st.columns(2)
         with c1:
             if data["pros_cons"].get("pros"):
-                st.markdown("### ✅ Pros")
+                st.markdown("### ✓ Pros")
                 for pro in data["pros_cons"]["pros"]:
                     st.markdown(f"- {pro}")
         with c2:
             if data["pros_cons"].get("cons"):
-                st.markdown("### ❌ Cons")
+                st.markdown("### ✕ Cons")
                 for con in data["pros_cons"]["cons"]:
                     st.markdown(f"- {con}")
 
     if "action_items" in data and data["action_items"]:
-        st.markdown("### 📋 Action Items")
+        st.markdown("### ▪ Action Items")
         for item in data["action_items"]:
             assignee = item.get("assignee", "Unassigned")
             task = item.get("task", "")
@@ -213,66 +220,74 @@ def render_response(data: dict):
             st.markdown(f"- **{task}** (Assignee: {assignee}, Deadline: {deadline})")
 
     if "citations" in data and data["citations"]:
-        st.markdown("### 📚 Citations")
+        st.markdown("### * Citations")
         for citation in data["citations"]:
             st.markdown(f"- `{citation}`")
 
     if "latency" in data:
         st.caption(
-            f"⚡ Response time: {data['latency']}s | "
-            f"🤖 Model: {data.get('model_used', 'N/A')} | "
-            f"📌 Session: {data.get('session_id', 'N/A')}"
+            f"~ Response time: {data['latency']}s | "
+            f"| Model: {data.get('model_used', 'N/A')} | "
+            f"| Session: {data.get('session_id', 'N/A')}"
         )
 
 # ───────────── STATE INIT ────────────────────────────────────────────────────
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "show_sidebar" not in st.session_state:
+    st.session_state.show_sidebar = True
 
 # ───────────── SIDEBAR CONFIG ────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("<div class='sidebar-heading'>⚙️ Configuration</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sidebar-heading'>≡ Configuration</div>", unsafe_allow_html=True)
     st.markdown("---")
 
-    provider = st.radio("📡 Provider", ("Groq", "OpenRouter"), horizontal=True)
+    with st.expander("▪ Model Selection", expanded=True):
+        provider = st.radio("📡 Provider", ("Groq", "OpenRouter"), horizontal=True)
 
-    MODEL_NAMES_GROQ = ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"]
-    MODEL_NAMES_OPENROUTER = ["meta-llama/llama-3.1-70b-instruct"]
+        MODEL_NAMES_GROQ = ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"]
+        MODEL_NAMES_OPENROUTER = ["meta-llama/llama-3.1-70b-instruct"]
 
-    if provider == "Groq":
-        selected_model = st.selectbox("🤖 Model", MODEL_NAMES_GROQ)
-    else:
-        selected_model = st.selectbox("🤖 Model", MODEL_NAMES_OPENROUTER)
+        if provider == "Groq":
+            selected_model = st.selectbox("Model", MODEL_NAMES_GROQ)
+        else:
+            selected_model = st.selectbox("Model", MODEL_NAMES_OPENROUTER)
 
-    allow_web_search = st.toggle("🌐 Enable Web Search", value=True)
+    with st.expander("≡ Tool Settings", expanded=False):
+        allow_web_search = st.toggle("Enable Web Search", value=True)
 
-    # ── Tool Router toggle ───────────────────────────────────────────────────
+        # ── Tool Router toggle ───────────────────────────────────────────────────
+        use_tool_routing = st.toggle(
+            "Enable Tool Router",
+            value=True,
+            help=(
+                "When ON, a dedicated LLM step first decides which tool (RAG, Web Search, "
+                "or none) to use before answering. This makes tool selection explicit and "
+                "transparent. Turn OFF to use the classic ReAct agent loop instead."
+            ),
+        )
+
+        if use_tool_routing:
+            st.caption("On: Tool Router active.")
+        else:
+            st.caption("Off: Tool Router disabled.")
+
+    with st.expander("▪ Prompt Engineering", expanded=False):
+        SYSTEM_PROMPT = st.text_area(
+            "System Prompt",
+            value="You are a Research & Summarization Agent. Be concise, factual, and professional.",
+            height=150
+        )
+
     st.markdown("---")
-    use_tool_routing = st.toggle(
-        "🧭 Enable Tool Router",
-        value=True,
-        help=(
-            "When ON, a dedicated LLM step first decides which tool (RAG, Web Search, "
-            "or none) to use before answering. This makes tool selection explicit and "
-            "transparent. Turn OFF to use the classic ReAct agent loop instead."
-        ),
-    )
-
-    if use_tool_routing:
-        st.caption("🟢 Tool Router **active** — the agent will decide which tool to invoke before responding.")
-    else:
-        st.caption("🔴 Tool Router **disabled** — using classic ReAct agent loop.")
-
-    st.markdown("---")
-    SYSTEM_PROMPT = st.text_area(
-        "🧠 System Prompt",
-        value="You are a Research & Summarization Agent. Be concise, factual, and professional.",
-        height=150
-    )
-
-    st.markdown("---")
-    if st.button("🗑️ Clear Chat History", use_container_width=True):
+    if st.button("x Clear Chat History", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
+
+# Apply CSS to hide sidebar if toggled off
+if not st.session_state.show_sidebar:
+    st.markdown("<style>div[data-testid='stSidebar'] {display: none !important;}</style>", unsafe_allow_html=True)
+    st.markdown("<style>section[data-testid='stSidebar'] {display: none !important;}</style>", unsafe_allow_html=True)
 
 # ───────────── MAIN LAYOUT ───────────────────────────────────────────────────
 col1, col2, col3 = st.columns([1, 2, 1])
@@ -280,8 +295,14 @@ with col2:
     if lottie_ai:
         st_lottie(lottie_ai, height=120, key="ai_robot")
 
+# Custom Sidebar Toggle in Main Area
+c1, c2 = st.columns([8, 2])
+with c2:
+    if st.button("≡ Show Settings" if not st.session_state.show_sidebar else "x Hide Settings", use_container_width=True):
+        st.session_state.show_sidebar = not st.session_state.show_sidebar
+        st.rerun()
+
 st.markdown("<h1>Agentic Studio</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subtitle'>Experience the next generation of AI Research & Summarization</p>", unsafe_allow_html=True)
 
 # Display Chat History
 for message in st.session_state.messages:
@@ -313,9 +334,9 @@ if prompt := st.chat_input("Ask your agent a question or request research..."):
     # Fetch response
     with st.chat_message("assistant"):
         spinner_msg = (
-            "🧭 Routing query to best tool… then researching…"
+            "> Routing query to best tool… then researching…"
             if use_tool_routing
-            else "Analyzing and researching... 🔮"
+            else "Analyzing and researching..."
         )
         with st.spinner(spinner_msg):
             try:
@@ -330,9 +351,9 @@ if prompt := st.chat_input("Ask your agent a question or request research..."):
                         st.session_state.messages.append({"role": "assistant", "content": data})
                         st.rerun()
                 else:
-                    st.error(f"❌ Server error {response.status_code}. Check backend logs.")
+                    st.error(f"! Server error {response.status_code}. Check backend logs.")
 
             except requests.exceptions.ConnectionError:
-                st.error("❌ Cannot connect to the backend. Make sure the FastAPI server is running on port 9999.")
+                st.error("! Cannot connect to the backend. Make sure the FastAPI server is running on port 9999.")
             except requests.exceptions.Timeout:
-                st.error("⏱️ Request timed out. The agent is taking too long to respond.")
+                st.error("! Request timed out. The agent is taking too long to respond.")

@@ -12,7 +12,7 @@ from langgraph.prebuilt import create_react_agent
 from langchain_core.messages.ai import AIMessage
 from langchain_core.messages import HumanMessage, SystemMessage
 from backend.tools.retriever import retrieve
-from backend.tools.summarizer import summarize_with_evidence
+from backend.tools.summarizer import summarize_with_evidence, generate_grounded_answer
 from backend.tool_router import decide_tool, ToolDecision
 
 load_dotenv()
@@ -36,10 +36,12 @@ Your tasks:
 
 @tool
 def research_tool(query: str) -> str:
-    """Retrieve and summarize information from ingested sources with citations."""
+    """Retrieve and generate a grounded answer from ingested sources."""
     retrieved = retrieve(query, top_k=5)
-    summary = summarize_with_evidence(retrieved)
-    return str(summary)
+    if not retrieved:
+        return "The answer is not available in the provided context."
+    answer = generate_grounded_answer(query, retrieved)
+    return answer
 
 
 def _build_search_tool():
@@ -171,17 +173,23 @@ def get_response_with_routing(
 
     # ── Phase 2: Execute based on decision ────────────────────────────────────
     if tool_name == "research_tool":
-        # Direct RAG retrieval + structured summarization
+        # Direct RAG retrieval + grounded answering
         retrieved = retrieve(tool_input, top_k=5)
         if not retrieved:
             result = {
-                "summary": ["No relevant documents found in the knowledge base."],
+                "summary": ["The answer is not available in the provided context."],
                 "pros_cons": {"pros": [], "cons": []},
                 "action_items": [],
                 "citations": [],
             }
         else:
-            result = summarize_with_evidence(retrieved)
+            grounded_answer = generate_grounded_answer(tool_input, retrieved)
+            result = {
+                "summary": [grounded_answer],
+                "pros_cons": {"pros": [], "cons": []},
+                "action_items": [],
+                "citations": [c.get("source_id", "unknown") for c in retrieved],
+            }
 
     elif tool_name == "web_search" and allow_search:
         # Tavily web search → feed results back through ReAct agent
