@@ -166,7 +166,10 @@ def decide_endpoint(request: DecideRequest):
         return {"error": "Invalid model name. Kindly select a valid AI model"}
     try:
         llm = _build_llm(request.model_provider, request.model_name)
-        decision = decide_tool(request.query, llm)
+        # Standalone router call usually doesn't have history context unless provided,
+        # but we can check if there's any history for this query if session_id was added.
+        # For now, we pass None or an empty list as it's a standalone test.
+        decision = decide_tool(request.query, llm, conversation_history=[])
         return {
             "query": request.query,
             "tool": decision.tool,

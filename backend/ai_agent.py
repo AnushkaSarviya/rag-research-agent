@@ -23,6 +23,34 @@ GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
 OPEN_ROUTER_API_KEY = os.environ.get("OPEN_ROUTER_API_KEY")
 
+
+def _format_chat_history(history: List[str]) -> str:
+    """Format a list of strings (user messages) into a chat history string."""
+    if not history:
+        return "No previous conversation."
+    return "\n".join([f"User: {msg}" for msg in history])
+
+
+def _inject_memory(system_prompt: str, query: str, history: List[str], long_term_memory: str = "") -> str:
+    """Inject memory and query into the system prompt if placeholders exist."""
+    chat_history_str = _format_chat_history(history)
+    
+    # Check if placeholders exist to avoid KeyError if the user provided a custom prompt without them
+    placeholders = {
+        "query": query,
+        "chat_history": chat_history_str,
+        "long_term_memory": long_term_memory if long_term_memory else "No relevant document context found."
+    }
+    
+    try:
+        # Only format if at least one placeholder is present to avoid issues with curly braces in prompts
+        if any(f"{{{k}}}" in system_prompt for k in placeholders.keys()):
+            return system_prompt.format(**placeholders)
+        return system_prompt
+    except Exception as e:
+        logger.warning(f"Failed to format system prompt: {e}")
+        return system_prompt
+
 # Step 2: Setup LLM & Tools
 DEFAULT_SYSTEM_PROMPT = """
 You are a Research & Summarization Agent.
@@ -109,11 +137,13 @@ def get_response_from_ai_agent(
         tools.append(_build_search_tool())
 
     # Use provided system_prompt or fallback to DEFAULT_SYSTEM_PROMPT
-    effective_prompt = (
+    raw_prompt = (
         system_prompt.strip()
         if system_prompt and system_prompt.strip()
         else DEFAULT_SYSTEM_PROMPT
     )
+    
+    effective_prompt = _inject_memory(raw_prompt, query, conversation_history or [])
 
     agent = create_react_agent(
         model=llm,
@@ -165,14 +195,50 @@ def get_response_with_routing(
     llm = _build_llm(provider, llm_id)
 
     # ── Phase 1: Tool Routing ──────────────────────────────────────────────────
-    decision: ToolDecision = decide_tool(query, llm)
+    decision: ToolDecision = decide_tool(query, llm, conversation_history=conversation_history)
     tool_name = decision.tool
     tool_input = decision.input
 
     logger.info(f"[Agent] Routing decision → tool={tool_name!r}, input={tool_input!r}")
 
     # ── Phase 2: Execute based on decision ────────────────────────────────────
-    if tool_name == "research_tool":
+    if tool_name == "web_search" and allow_search:
+        # Tavily web search → feed results back through ReAct agent
+        try:
+            search_tool = _build_search_tool()
+            search_results = search_tool.invoke(tool_input)
+            # Summarise search results using a direct LLM call
+            search_context = (
+                f"Web search results for: '{tool_input}'\n\n"
+                + str(search_results)
+            )
+            raw_prompt = (
+                system_prompt.strip() if system_prompt and system_prompt.strip()
+                else DEFAULT_SYSTEM_PROMPT
+            )
+            effective_prompt = _inject_memory(raw_prompt, query, conversation_history or [], long_term_memory=search_context)
+            
+            summary_messages = [
+                SystemMessage(content=effective_prompt),
+                HumanMessage(content=query),
+            ]
+            summary_resp = llm.invoke(summary_messages)
+            
+            citations = [f"Web search: {tool_input}"]
+            
+            # Prepare result with summary
+            result = {
+                "summary": [summary_resp.content],
+                "pros_cons": {"pros": [], "cons": []},
+                "action_items": [],
+                "citations": citations,
+            }
+        except Exception as exc:
+            logger.warning(f"[Agent] Web search failed: {exc}. Falling back to direct LLM.")
+            tool_name = "no_tool"
+            result = None
+
+    elif tool_name == "research_tool":
         # Direct RAG retrieval + grounded answering
         retrieved = retrieve(tool_input, top_k=5)
         if not retrieved:
@@ -183,43 +249,26 @@ def get_response_with_routing(
                 "citations": [],
             }
         else:
-            grounded_answer = generate_grounded_answer(tool_input, retrieved)
+            # Inject RAG results into the system prompt for the final answer
+            context_str = "\n".join([f"- {c.get('text')}" for c in retrieved])
+            raw_prompt = (
+                system_prompt.strip() if system_prompt and system_prompt.strip()
+                else DEFAULT_SYSTEM_PROMPT
+            )
+            final_prompt = _inject_memory(raw_prompt, query, conversation_history or [], long_term_memory=context_str)
+            
+            messages = [
+                SystemMessage(content=final_prompt),
+                HumanMessage(content=query)
+            ]
+            final_resp = llm.invoke(messages)
+            
             result = {
-                "summary": [grounded_answer],
+                "summary": [final_resp.content],
                 "pros_cons": {"pros": [], "cons": []},
                 "action_items": [],
                 "citations": [c.get("source_id", "unknown") for c in retrieved],
             }
-
-    elif tool_name == "web_search" and allow_search:
-        # Tavily web search → feed results back through ReAct agent
-        try:
-            search_tool = _build_search_tool()
-            search_results = search_tool.invoke(tool_input)
-            # Summarise search results using a direct LLM call
-            search_context = (
-                f"Web search results for: '{tool_input}'\n\n"
-                + str(search_results)
-            )
-            effective_prompt = (
-                system_prompt.strip() if system_prompt and system_prompt.strip()
-                else DEFAULT_SYSTEM_PROMPT
-            )
-            summary_messages = [
-                SystemMessage(content=effective_prompt),
-                HumanMessage(content=search_context),
-            ]
-            summary_resp = llm.invoke(summary_messages)
-            result = {
-                "summary": [summary_resp.content],
-                "pros_cons": {"pros": [], "cons": []},
-                "action_items": [],
-                "citations": [f"Web search: {tool_input}"],
-            }
-        except Exception as exc:
-            logger.warning(f"[Agent] Web search failed: {exc}. Falling back to direct LLM.")
-            tool_name = "no_tool"
-            result = None
 
     else:
         # no_tool (or web_search disabled) → direct LLM response
@@ -228,10 +277,12 @@ def get_response_with_routing(
 
     # ── Fallback: Direct LLM when no_tool ────────────────────────────────────
     if result is None:
-        effective_prompt = (
+        raw_prompt = (
             system_prompt.strip() if system_prompt and system_prompt.strip()
             else DEFAULT_SYSTEM_PROMPT
         )
+        effective_prompt = _inject_memory(raw_prompt, query, conversation_history or [])
+        
         messages = [SystemMessage(content=effective_prompt)]
 
         if conversation_history:

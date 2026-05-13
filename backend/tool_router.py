@@ -82,25 +82,28 @@ Each tool has:
 YOUR TASK:
 
 1. Read the user query carefully.
-2. Understand the user's intent.
-3. Decide:
+2. Read the CHAT HISTORY to understand the context of the current query.
+3. Resolve any ambiguous references (e.g., "it", "that", "the document", "more info") using the history.
+4. Decide:
    - If a tool is needed → choose the BEST matching tool
    - If no tool is needed → choose "no_tool"
 
-4. If a tool is selected:
-   - Extract only the relevant part of the query as input
-   - Clean the input (remove unnecessary words)
-   - Keep it precise and usable
+5. If a tool is selected:
+   - The "input" MUST be the RESOLVED version of the query (e.g., if user says "Tell me more about it" and "it" is LangGraph, input should be "LangGraph").
+   - Clean the input (remove unnecessary words).
+   - Keep it precise and usable.
 
 ---
 
 SELECTION RULES:
 
-- Choose ONLY from the available tools
-- Do NOT invent new tools
-- Prefer the MOST specific tool over general ones
-- If the query directly asks to analyze, summarize, translate, or extract → use a tool
-- If the query is general knowledge or conversation → use "no_tool"
+- Choose ONLY from the available tools.
+- Do NOT invent new tools.
+- **Reference Resolution**: If the query contains pronouns (it, that, they) or vague terms (the topic, more info, tell me more), you MUST resolve them using the CHAT HISTORY before deciding.
+- **Topic Persistence**: If the resolved topic was previously handled by `research_tool` or `web_search`, continue using that tool unless the user explicitly asks to switch.
+- If the query directly asks to analyze, summarize, translate, or extract → use a tool.
+- If the query is general knowledge, a greeting, or simple conversation → use "no_tool".
+- **Crucial**: If the resolved query is "Tell me more about LangChain", this is NOT "general conversation". It is a request for more information on a specific topic, so use the relevant tool (`research_tool` or `web_search`).
 
 ---
 
@@ -108,8 +111,13 @@ OUTPUT FORMAT (STRICT — NO EXTRA TEXT):
 
 {{
   "tool": "<tool_name OR no_tool>",
-  "input": "<clean extracted input>"
-}}"""
+  "input": "<resolved and clean input>"
+}}
+
+---
+
+CHAT HISTORY (for reference resolution):
+{chat_history}"""
 
 
 # ── Pydantic Schema for the Decision ──────────────────────────────────────────
@@ -119,13 +127,14 @@ class ToolDecision(BaseModel):
 
 
 # ── Core Decision Function ─────────────────────────────────────────────────────
-def decide_tool(query: str, llm) -> ToolDecision:
+def decide_tool(query: str, llm, conversation_history: list = None) -> ToolDecision:
     """
     Ask the LLM (acting as a router) to decide which tool to use for a query.
 
     Args:
         query: The raw user query string.
         llm:   A LangChain chat model instance (ChatGroq or ChatOpenAI).
+        conversation_history: List of previous user messages.
 
     Returns:
         ToolDecision with 'tool' and 'input' fields.
@@ -133,9 +142,16 @@ def decide_tool(query: str, llm) -> ToolDecision:
     """
     from langchain_core.messages import HumanMessage, SystemMessage
 
+    # Format chat history for the router
+    if conversation_history:
+        history_str = "\n".join([f"User: {msg}" for msg in conversation_history])
+    else:
+        history_str = "No previous conversation."
+
     tool_descriptions_str = _format_tool_descriptions()
     system_content = TOOL_ROUTER_SYSTEM_PROMPT.format(
-        tool_descriptions=tool_descriptions_str
+        tool_descriptions=tool_descriptions_str,
+        chat_history=history_str
     )
 
     messages = [

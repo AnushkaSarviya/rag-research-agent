@@ -1,158 +1,196 @@
+import subprocess
+import sys
+
+# ───────────── AUTO-INSTALL DEPENDENCIES ─────────────────────────────────────
+REQUIRED = [
+    "streamlit",
+    "requests",
+    "streamlit-lottie",
+]
+
+for package in REQUIRED:
+    try:
+        __import__(package.replace("-", "_"))
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+# ───────────── IMPORTS ───────────────────────────────────────────────────────
 import streamlit as st
 import requests
 import json
 from streamlit_lottie import st_lottie
 
-# ------------------- PAGE CONFIG --------------------
-st.set_page_config(page_title="Agentic Studio", page_icon="✦", layout="wide", initial_sidebar_state="expanded")
+# ───────────── PAGE CONFIG ───────────────────────────────────────────────────
+st.set_page_config(
+    page_title="Agentic Studio",
+    page_icon="◆",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
-# ------------------- HELPER FUNCTIONS ----------------
+# ───────────── HELPER ────────────────────────────────────────────────────────
 def load_lottieurl(url: str):
-    r = requests.get(url)
-    if r.status_code != 200:
+    try:
+        r = requests.get(url, timeout=5)
+        if r.status_code != 200:
+            return None
+        return r.json()
+    except Exception:
         return None
-    return r.json()
 
-# Lottie animation for AI
-lottie_ai = load_lottieurl("https://assets3.lottiefiles.com/packages/lf20_dbbxfnjo.json")
+lottie_ai = load_lottieurl(
+    "https://assets3.lottiefiles.com/packages/lf20_dbbxfnjo.json"
+)
 
-# ------------------- CUSTOM CSS ---------------------
+# ───────────── CUSTOM CSS ───────────────────────────────────────────────────
 custom_css = """
 <style>
-/* App Background & Typography */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-html, body, [class*="css"]  {
-    font-family: 'Inter', sans-serif;
+/* ── Reset ────────────────────────────────────── */
+html, body, [class*="css"] {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #c9d1d9;
 }
 
-/* Aesthetic Dark Background */
+/* ── Ombre background ─────────────────────────── */
 .stApp {
-    background-color: #0d1117 !important;
-    background-image: radial-gradient(ellipse at 50% -20%, #1f2937, #0d1117 80%) !important;
+    background: linear-gradient(168deg, #0a0a0f 0%, #0d1117 30%, #111827 60%, #0d1117 100%) !important;
     background-attachment: fixed !important;
 }
 
-/* Sidebar styling */
-[data-testid="stSidebar"] {
-    background: rgba(15, 23, 42, 0.95) !important;
-    backdrop-filter: blur(20px);
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+/* ── Subtle ambient glow behind content ────────── */
+.stApp::before {
+    content: '';
+    position: fixed;
+    top: -40%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80vw;
+    height: 60vh;
+    background: radial-gradient(ellipse, rgba(99,102,241,0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
 }
 
-/* Gradient Title */
+/* ── Sidebar ──────────────────────────────────── */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, rgba(10,10,15,0.97) 0%, rgba(13,17,23,0.97) 100%) !important;
+    border-right: 1px solid rgba(255,255,255,0.04);
+}
+
+[data-testid="stSidebar"] * {
+    color: #8b949e !important;
+}
+
+[data-testid="stSidebar"] .stSelectbox label,
+[data-testid="stSidebar"] .stRadio label,
+[data-testid="stSidebar"] .stTextArea label {
+    color: #8b949e !important;
+    font-weight: 500;
+    font-size: 0.82rem;
+    letter-spacing: 0.3px;
+}
+
+/* ── Typography ───────────────────────────────── */
 h1 {
     text-align: center;
+    color: #e6edf3 !important;
+    font-size: 3rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -1px;
+    margin-bottom: 0.2rem !important;
     background: linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #00c6ff 100%);
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-size: 3.8rem !important;
-    font-weight: 900 !important;
-    margin-bottom: 0.1em;
-    letter-spacing: -1px;
-    filter: drop-shadow(0 0 15px rgba(0, 242, 254, 0.4));
+    -webkit-text-fill-color: transparent !important;
+    text-shadow: 0 0 40px rgba(0, 242, 254, 0.2);
 }
 
-.subtitle {
-    text-align: center;
-    font-size: 1.25rem;
-    background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 2.5rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+h3 {
+    color: #8b949e !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-top: 1.2rem !important;
+    margin-bottom: 0.6rem !important;
 }
 
-/* Sidebar heading */
 .sidebar-heading {
     text-align: center;
-    background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-size: 1.8rem;
-    font-weight: 800;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-}
-
-/* Glassmorphism Cards */
-.glass-card {
-    background: rgba(30, 41, 59, 0.7);
-    padding: 20px;
-    border-radius: 16px;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-    margin-bottom: 1.5rem;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.glass-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 40px rgba(0, 242, 254, 0.15);
-    border: 1px solid rgba(0, 242, 254, 0.3);
-}
-
-/* Chat Messages */
-.stChatMessage {
-    background: rgba(30, 41, 59, 0.4) !important;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 1rem;
-    margin-bottom: 1rem;
-}
-
-/* Glow effects for success/info text */
-.glow-text {
-    color: #38bdf8;
-    text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+    color: #c9d1d9 !important;
+    font-size: 1.1rem;
     font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
 }
 
-/* ── Tool Decision Badge ─────────────────────────────────── */
+/* ── Chat messages ────────────────────────────── */
+.stChatMessage {
+    background: rgba(22, 27, 34, 0.4) !important;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.05) !important;
+    padding: 1rem;
+    margin-bottom: 0.8rem;
+}
+
+/* ── Tool decision badges ──────── */
 .tool-badge {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 14px;
+    gap: 8px;
+    padding: 6px 16px;
     border-radius: 999px;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     font-weight: 700;
-    letter-spacing: 0.4px;
-    margin-bottom: 12px;
-    border: 1px solid;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
 }
 
 .tool-badge-research {
-    background: rgba(79, 172, 254, 0.15);
-    color: #4facfe;
-    border-color: rgba(79, 172, 254, 0.4);
-    box-shadow: 0 0 12px rgba(79, 172, 254, 0.2);
+    background: rgba(99,102,241,0.12);
+    color: #818cf8;
+    border: 1px solid rgba(99,102,241,0.25);
+    box-shadow: 0 0 20px rgba(99,102,241,0.1);
 }
 
 .tool-badge-web {
-    background: rgba(52, 211, 153, 0.15);
-    color: #34d399;
-    border-color: rgba(52, 211, 153, 0.4);
-    box-shadow: 0 0 12px rgba(52, 211, 153, 0.2);
+    background: rgba(52,211,153,0.1);
+    color: #6ee7b7;
+    border: 1px solid rgba(52,211,153,0.25);
+    box-shadow: 0 0 20px rgba(52,211,153,0.1);
 }
 
 .tool-badge-notool {
-    background: rgba(148, 163, 184, 0.12);
+    background: rgba(139,148,158,0.08);
     color: #94a3b8;
-    border-color: rgba(148, 163, 184, 0.3);
+    border: 1px solid rgba(139,148,158,0.2);
 }
 
 .tool-input-hint {
     font-size: 0.72rem;
-    color: #64748b;
-    margin-bottom: 10px;
+    color: #484f58;
+    margin-bottom: 15px;
     font-style: italic;
 }
 
-/* Hide Streamlit Branding */
+/* ── Buttons ──────────────────────────────────── */
+.stButton > button {
+    background: rgba(30, 41, 59, 0.7) !important;
+    color: #f1f5f9 !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    border-radius: 10px !important;
+    transition: all 0.3s ease;
+}
+
+.stButton > button:hover {
+    background: rgba(51, 65, 85, 0.9) !important;
+    border-color: #38bdf8 !important;
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+}
+
+/* ── Hide branding ────────────────────────────── */
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
@@ -168,7 +206,6 @@ TOOL_ICONS = {
 }
 
 def render_tool_badge(tool_decision: dict):
-    """Render a pill badge showing which tool the router selected."""
     tool = tool_decision.get("tool", "no_tool")
     tool_input = tool_decision.get("input", "")
     icon, css_class, label = TOOL_ICONS.get(tool, ("▪", "tool-badge-notool", tool))
@@ -185,9 +222,6 @@ def render_tool_badge(tool_decision: dict):
 
 # ───────────── RESPONSE RENDERER ─────────────────────────────────────────────
 def render_response(data: dict):
-    """Render the structured agent response, including tool decision badge."""
-
-    # Show tool routing badge if present
     if "tool_decision" in data:
         render_tool_badge(data["tool_decision"])
 
@@ -226,9 +260,9 @@ def render_response(data: dict):
 
     if "latency" in data:
         st.caption(
-            f"~ Response time: {data['latency']}s | "
-            f"| Model: {data.get('model_used', 'N/A')} | "
-            f"| Session: {data.get('session_id', 'N/A')}"
+            f"~ {data['latency']}s | "
+            f"Model: {data.get('model_used', 'N/A')} | "
+            f"Session: {data.get('session_id', 'N/A')}"
         )
 
 # ───────────── STATE INIT ────────────────────────────────────────────────────
@@ -244,47 +278,80 @@ with st.sidebar:
 
     with st.expander("▪ Model Selection", expanded=True):
         provider = st.radio("📡 Provider", ("Groq", "OpenRouter"), horizontal=True)
-
         MODEL_NAMES_GROQ = ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"]
         MODEL_NAMES_OPENROUTER = ["meta-llama/llama-3.1-70b-instruct"]
-
-        if provider == "Groq":
-            selected_model = st.selectbox("Model", MODEL_NAMES_GROQ)
-        else:
-            selected_model = st.selectbox("Model", MODEL_NAMES_OPENROUTER)
+        selected_model = st.selectbox("Model", MODEL_NAMES_GROQ if provider == "Groq" else MODEL_NAMES_OPENROUTER)
 
     with st.expander("≡ Tool Settings", expanded=False):
         allow_web_search = st.toggle("Enable Web Search", value=True)
-
-        # ── Tool Router toggle ───────────────────────────────────────────────────
-        use_tool_routing = st.toggle(
-            "Enable Tool Router",
-            value=True,
-            help=(
-                "When ON, a dedicated LLM step first decides which tool (RAG, Web Search, "
-                "or none) to use before answering. This makes tool selection explicit and "
-                "transparent. Turn OFF to use the classic ReAct agent loop instead."
-            ),
-        )
-
-        if use_tool_routing:
-            st.caption("On: Tool Router active.")
-        else:
-            st.caption("Off: Tool Router disabled.")
+        use_tool_routing = st.toggle("Enable Tool Router", value=True)
 
     with st.expander("▪ Prompt Engineering", expanded=False):
-        SYSTEM_PROMPT = st.text_area(
-            "System Prompt",
-            value="You are a Research & Summarization Agent. Be concise, factual, and professional.",
-            height=150
-        )
+        ADVANCED_PROMPT = """You are an AI assistant that answers user queries using:
+
+1. Current query
+2. Short-term memory (recent conversation)
+3. Long-term memory (retrieved user data)
+
+---
+
+INPUTS:
+
+USER QUERY:
+{query}
+
+SHORT-TERM MEMORY:
+{chat_history}
+
+LONG-TERM MEMORY:
+{long_term_memory}
+
+---
+
+YOUR TASK:
+
+1. Understand the query.
+2. Use short-term memory to:
+   - maintain conversation flow
+   - resolve references (e.g., "it", "that")
+
+3. Use long-term memory to:
+   - personalize the response
+   - recall relevant past preferences or topics
+
+---
+
+RULES:
+
+- Use memory ONLY if relevant
+- Do NOT assume missing information
+- Do NOT repeat unnecessary past details
+- Do NOT mention memory sources
+
+---
+
+BEHAVIOR:
+
+- If memory is relevant → use it naturally
+- If not → ignore it completely
+
+---
+
+OUTPUT:
+
+Provide a clear, concise, context-aware answer.
+
+DO NOT include:
+- reasoning steps
+- system explanations
+- references to memory"""
+        SYSTEM_PROMPT = st.text_area("System Prompt", value=ADVANCED_PROMPT, height=400)
 
     st.markdown("---")
     if st.button("x Clear Chat History", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
 
-# Apply CSS to hide sidebar if toggled off
 if not st.session_state.show_sidebar:
     st.markdown("<style>div[data-testid='stSidebar'] {display: none !important;}</style>", unsafe_allow_html=True)
     st.markdown("<style>section[data-testid='stSidebar'] {display: none !important;}</style>", unsafe_allow_html=True)
@@ -292,68 +359,47 @@ if not st.session_state.show_sidebar:
 # ───────────── MAIN LAYOUT ───────────────────────────────────────────────────
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
-    if lottie_ai:
-        st_lottie(lottie_ai, height=120, key="ai_robot")
+    if lottie_ai: st_lottie(lottie_ai, height=120, key="ai_robot")
 
-# Custom Sidebar Toggle in Main Area
 c1, c2 = st.columns([8, 2])
 with c2:
-    if st.button("≡ Show Settings" if not st.session_state.show_sidebar else "x Hide Settings", use_container_width=True):
+    if st.button("≡ Settings" if not st.session_state.show_sidebar else "x Hide", use_container_width=True):
         st.session_state.show_sidebar = not st.session_state.show_sidebar
         st.rerun()
 
 st.markdown("<h1>Agentic Studio</h1>", unsafe_allow_html=True)
 
-# Display Chat History
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
-        if message["role"] == "user":
-            st.write(message["content"])
-        else:
-            render_response(message["content"])
+        if message["role"] == "user": st.write(message["content"])
+        else: render_response(message["content"])
 
 # ───────────── CHAT INPUT ────────────────────────────────────────────────────
 API_URL = "http://127.0.0.1:9999/chat"
 
-if prompt := st.chat_input("Ask your agent a question or request research..."):
-    # Add user message to state and display
+if prompt := st.chat_input("Ask your agent a question..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.write(prompt)
+    with st.chat_message("user"): st.write(prompt)
 
-    # Prepare request
     payload = {
         "model_name": selected_model,
         "model_provider": provider,
         "system_prompt": SYSTEM_PROMPT,
         "messages": [prompt],
         "allow_search": allow_web_search,
-        "use_tool_routing": use_tool_routing,   # send router toggle state
+        "use_tool_routing": use_tool_routing,
     }
 
-    # Fetch response
     with st.chat_message("assistant"):
-        spinner_msg = (
-            "> Routing query to best tool… then researching…"
-            if use_tool_routing
-            else "Analyzing and researching..."
-        )
+        spinner_msg = "> Routing..." if use_tool_routing else "Processing..."
         with st.spinner(spinner_msg):
             try:
                 response = requests.post(API_URL, json=payload, timeout=120)
-
                 if response.status_code == 200:
                     data = response.json()
-                    if "error" in data:
-                        st.error(data["error"])
+                    if "error" in data: st.error(data["error"])
                     else:
-                        # Append assistant response and force rerun to render cleanly
                         st.session_state.messages.append({"role": "assistant", "content": data})
                         st.rerun()
-                else:
-                    st.error(f"! Server error {response.status_code}. Check backend logs.")
-
-            except requests.exceptions.ConnectionError:
-                st.error("! Cannot connect to the backend. Make sure the FastAPI server is running on port 9999.")
-            except requests.exceptions.Timeout:
-                st.error("! Request timed out. The agent is taking too long to respond.")
+                else: st.error(f"! Server error {response.status_code}")
+            except Exception as e: st.error(f"! Connection error: {e}")
