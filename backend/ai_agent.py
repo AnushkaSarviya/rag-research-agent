@@ -11,8 +11,9 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 from langchain_core.messages.ai import AIMessage
 from langchain_core.messages import HumanMessage, SystemMessage
+from typing import List
 from backend.tools.retriever import retrieve
-from backend.tools.summarizer import summarize_with_evidence, generate_grounded_answer
+from backend.tools.summarizer import generate_grounded_answer
 from backend.tool_router import decide_tool, ToolDecision
 
 load_dotenv()
@@ -34,14 +35,14 @@ def _format_chat_history(history: List[str]) -> str:
 def _inject_memory(system_prompt: str, query: str, history: List[str], long_term_memory: str = "") -> str:
     """Inject memory and query into the system prompt if placeholders exist."""
     chat_history_str = _format_chat_history(history)
-    
+
     # Check if placeholders exist to avoid KeyError if the user provided a custom prompt without them
     placeholders = {
         "query": query,
         "chat_history": chat_history_str,
         "long_term_memory": long_term_memory if long_term_memory else "No relevant document context found."
     }
-    
+
     try:
         # Only format if at least one placeholder is present to avoid issues with curly braces in prompts
         if any(f"{{{k}}}" in system_prompt for k in placeholders.keys()):
@@ -50,6 +51,7 @@ def _inject_memory(system_prompt: str, query: str, history: List[str], long_term
     except Exception as e:
         logger.warning(f"Failed to format system prompt: {e}")
         return system_prompt
+
 
 # Step 2: Setup LLM & Tools
 DEFAULT_SYSTEM_PROMPT = """
@@ -142,7 +144,7 @@ def get_response_from_ai_agent(
         if system_prompt and system_prompt.strip()
         else DEFAULT_SYSTEM_PROMPT
     )
-    
+
     effective_prompt = _inject_memory(raw_prompt, query, conversation_history or [])
 
     agent = create_react_agent(
@@ -216,16 +218,18 @@ def get_response_with_routing(
                 system_prompt.strip() if system_prompt and system_prompt.strip()
                 else DEFAULT_SYSTEM_PROMPT
             )
-            effective_prompt = _inject_memory(raw_prompt, query, conversation_history or [], long_term_memory=search_context)
-            
+            effective_prompt = _inject_memory(
+                raw_prompt, query, conversation_history or [], long_term_memory=search_context
+            )
+
             summary_messages = [
                 SystemMessage(content=effective_prompt),
                 HumanMessage(content=query),
             ]
             summary_resp = llm.invoke(summary_messages)
-            
+
             citations = [f"Web search: {tool_input}"]
-            
+
             # Prepare result with summary
             result = {
                 "summary": [summary_resp.content],
@@ -255,14 +259,16 @@ def get_response_with_routing(
                 system_prompt.strip() if system_prompt and system_prompt.strip()
                 else DEFAULT_SYSTEM_PROMPT
             )
-            final_prompt = _inject_memory(raw_prompt, query, conversation_history or [], long_term_memory=context_str)
-            
+            final_prompt = _inject_memory(
+                raw_prompt, query, conversation_history or [], long_term_memory=context_str
+            )
+
             messages = [
                 SystemMessage(content=final_prompt),
                 HumanMessage(content=query)
             ]
             final_resp = llm.invoke(messages)
-            
+
             result = {
                 "summary": [final_resp.content],
                 "pros_cons": {"pros": [], "cons": []},
@@ -282,7 +288,7 @@ def get_response_with_routing(
             else DEFAULT_SYSTEM_PROMPT
         )
         effective_prompt = _inject_memory(raw_prompt, query, conversation_history or [])
-        
+
         messages = [SystemMessage(content=effective_prompt)]
 
         if conversation_history:

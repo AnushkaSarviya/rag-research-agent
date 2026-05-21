@@ -1,6 +1,5 @@
 import subprocess
 import sys
-
 # ───────────── AUTO-INSTALL DEPENDENCIES ─────────────────────────────────────
 REQUIRED = [
     "streamlit",
@@ -15,10 +14,10 @@ for package in REQUIRED:
         subprocess.check_call([sys.executable, "-m", "pip", "install", package])
 
 # ───────────── IMPORTS ───────────────────────────────────────────────────────
-import streamlit as st
-import requests
-import json
-from streamlit_lottie import st_lottie
+import streamlit as st  # noqa: E402
+import requests  # noqa: E402
+from streamlit_lottie import st_lottie  # noqa: E402
+
 
 # ───────────── PAGE CONFIG ───────────────────────────────────────────────────
 st.set_page_config(
@@ -27,6 +26,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
 
 # ───────────── HELPER ────────────────────────────────────────────────────────
 def load_lottieurl(url: str):
@@ -38,9 +38,11 @@ def load_lottieurl(url: str):
     except Exception:
         return None
 
+
 lottie_ai = load_lottieurl(
     "https://assets3.lottiefiles.com/packages/lf20_dbbxfnjo.json"
 )
+
 
 # ───────────── CUSTOM CSS ───────────────────────────────────────────────────
 custom_css = """
@@ -53,13 +55,12 @@ html, body, [class*="css"] {
     color: #c9d1d9;
 }
 
-/* ── Ombre background ─────────────────────────── */
+/* ── Ombre background & Glows ─────────────────────────── */
 .stApp {
     background: linear-gradient(168deg, #0a0a0f 0%, #0d1117 30%, #111827 60%, #0d1117 100%) !important;
     background-attachment: fixed !important;
 }
 
-/* ── Subtle ambient glow behind content ────────── */
 .stApp::before {
     content: '';
     position: fixed;
@@ -127,11 +128,12 @@ h3 {
 
 /* ── Chat messages ────────────────────────────── */
 .stChatMessage {
-    background: rgba(22, 27, 34, 0.4) !important;
+    background: rgba(22, 27, 34, 0.5) !important;
     border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
     padding: 1rem;
     margin-bottom: 0.8rem;
+    backdrop-filter: blur(10px);
 }
 
 /* ── Tool decision badges ──────── */
@@ -170,7 +172,7 @@ h3 {
 
 .tool-input-hint {
     font-size: 0.72rem;
-    color: #484f58;
+    color: #6e7681;
     margin-bottom: 15px;
     font-style: italic;
 }
@@ -205,6 +207,7 @@ TOOL_ICONS = {
     "no_tool":       ("·", "tool-badge-notool",   "Direct LLM · No Tool"),
 }
 
+
 def render_tool_badge(tool_decision: dict):
     tool = tool_decision.get("tool", "no_tool")
     tool_input = tool_decision.get("input", "")
@@ -220,6 +223,7 @@ def render_tool_badge(tool_decision: dict):
         unsafe_allow_html=True,
     )
 
+
 # ───────────── RESPONSE RENDERER ─────────────────────────────────────────────
 def render_response(data: dict):
     if "tool_decision" in data:
@@ -233,30 +237,31 @@ def render_response(data: dict):
     if "pros_cons" in data and (
         data["pros_cons"].get("pros") or data["pros_cons"].get("cons")
     ):
-        c1, c2 = st.columns(2)
-        with c1:
-            if data["pros_cons"].get("pros"):
-                st.markdown("### ✓ Pros")
-                for pro in data["pros_cons"]["pros"]:
-                    st.markdown(f"- {pro}")
-        with c2:
-            if data["pros_cons"].get("cons"):
-                st.markdown("### ✕ Cons")
-                for con in data["pros_cons"]["cons"]:
-                    st.markdown(f"- {con}")
+        with st.expander("⚖️ Pros & Cons", expanded=True):
+            c1, c2 = st.columns(2)
+            with c1:
+                if data["pros_cons"].get("pros"):
+                    st.markdown("#### ✓ Pros")
+                    for pro in data["pros_cons"]["pros"]:
+                        st.markdown(f"- {pro}")
+            with c2:
+                if data["pros_cons"].get("cons"):
+                    st.markdown("#### ✕ Cons")
+                    for con in data["pros_cons"]["cons"]:
+                        st.markdown(f"- {con}")
 
     if "action_items" in data and data["action_items"]:
-        st.markdown("### ▪ Action Items")
-        for item in data["action_items"]:
-            assignee = item.get("assignee", "Unassigned")
-            task = item.get("task", "")
-            deadline = item.get("deadline", "No deadline")
-            st.markdown(f"- **{task}** (Assignee: {assignee}, Deadline: {deadline})")
+        with st.expander("📋 Action Items", expanded=True):
+            for item in data["action_items"]:
+                assignee = item.get("assignee", "Unassigned")
+                task = item.get("task", "")
+                deadline = item.get("deadline", "No deadline")
+                st.markdown(f"- **{task}** (Assignee: {assignee}, Deadline: {deadline})")
 
     if "citations" in data and data["citations"]:
-        st.markdown("### * Citations")
-        for citation in data["citations"]:
-            st.markdown(f"- `{citation}`")
+        with st.expander("📚 Citations", expanded=False):
+            for citation in data["citations"]:
+                st.markdown(f"- `{citation}`")
 
     if "latency" in data:
         st.caption(
@@ -265,11 +270,13 @@ def render_response(data: dict):
             f"Session: {data.get('session_id', 'N/A')}"
         )
 
+
 # ───────────── STATE INIT ────────────────────────────────────────────────────
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "show_sidebar" not in st.session_state:
     st.session_state.show_sidebar = True
+
 
 # ───────────── SIDEBAR CONFIG ────────────────────────────────────────────────
 with st.sidebar:
@@ -359,7 +366,8 @@ if not st.session_state.show_sidebar:
 # ───────────── MAIN LAYOUT ───────────────────────────────────────────────────
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
-    if lottie_ai: st_lottie(lottie_ai, height=120, key="ai_robot")
+    if lottie_ai:
+        st_lottie(lottie_ai, height=120, key="ai_robot")
 
 c1, c2 = st.columns([8, 2])
 with c2:
@@ -371,15 +379,18 @@ st.markdown("<h1>Agentic Studio</h1>", unsafe_allow_html=True)
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
-        if message["role"] == "user": st.write(message["content"])
-        else: render_response(message["content"])
+        if message["role"] == "user":
+            st.write(message["content"])
+        else:
+            render_response(message["content"])
 
 # ───────────── CHAT INPUT ────────────────────────────────────────────────────
 API_URL = "http://127.0.0.1:9999/chat"
 
 if prompt := st.chat_input("Ask your agent a question..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"): st.write(prompt)
+    with st.chat_message("user"):
+        st.write(prompt)
 
     payload = {
         "model_name": selected_model,
@@ -391,15 +402,22 @@ if prompt := st.chat_input("Ask your agent a question..."):
     }
 
     with st.chat_message("assistant"):
-        spinner_msg = "> Routing..." if use_tool_routing else "Processing..."
-        with st.spinner(spinner_msg):
+        spinner_msg = "Routing & Generating Response..." if use_tool_routing else "Processing..."
+        with st.status(spinner_msg, expanded=True) as status:
             try:
                 response = requests.post(API_URL, json=payload, timeout=120)
                 if response.status_code == 200:
                     data = response.json()
-                    if "error" in data: st.error(data["error"])
+                    if "error" in data:
+                        status.update(label="Error occurred", state="error", expanded=False)
+                        st.error(data["error"])
                     else:
+                        status.update(label="Complete!", state="complete", expanded=False)
                         st.session_state.messages.append({"role": "assistant", "content": data})
                         st.rerun()
-                else: st.error(f"! Server error {response.status_code}")
-            except Exception as e: st.error(f"! Connection error: {e}")
+                else:
+                    status.update(label="Server error", state="error", expanded=False)
+                    st.error(f"! Server error {response.status_code}")
+            except Exception as e:
+                status.update(label="Connection error", state="error", expanded=False)
+                st.error(f"! Connection error: {e}")

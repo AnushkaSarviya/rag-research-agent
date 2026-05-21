@@ -224,10 +224,10 @@ def summarize_with_evidence(retrieved_chunks: List[dict]) -> Dict:
     """
     # Use the new grounded answering logic for the main summary content
     # We still wrap it in the JSON schema for frontend compatibility
-    
+
     # Extract query from context if possible, or just use chunks
     # For now, we'll keep the structured approach but use the grounded prompt's spirit
-    
+
     prompt = _build_json_prompt(retrieved_chunks)
 
     # Call the model

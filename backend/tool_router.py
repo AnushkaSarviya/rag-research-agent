@@ -9,7 +9,6 @@ strict JSON: {"tool": "<name | no_tool>", "input": "<clean query>"}
 
 import json
 import logging
-from typing import Optional
 
 from pydantic import BaseModel, ValidationError
 
@@ -63,7 +62,8 @@ def _format_tool_descriptions() -> str:
 
 
 # ── System Prompt (parameterised with tool descriptions) ───────────────────────
-TOOL_ROUTER_SYSTEM_PROMPT = """You are a precise AI agent whose ONLY job is to decide whether a tool should be used to answer a user query, and if yes, which tool and with what input.
+TOOL_ROUTER_SYSTEM_PROMPT = """You are a precise AI agent whose ONLY job is to decide whether a tool should be used to
+answer a user query, and if yes, which tool and with what input.
 
 You must NOT answer the user's question.
 
@@ -89,7 +89,8 @@ YOUR TASK:
    - If no tool is needed → choose "no_tool"
 
 5. If a tool is selected:
-   - The "input" MUST be the RESOLVED version of the query (e.g., if user says "Tell me more about it" and "it" is LangGraph, input should be "LangGraph").
+   - The "input" MUST be the RESOLVED version of the query (e.g., if user says "Tell me more about it" and
+     "it" is LangGraph, input should be "LangGraph").
    - Clean the input (remove unnecessary words).
    - Keep it precise and usable.
 
@@ -99,11 +100,14 @@ SELECTION RULES:
 
 - Choose ONLY from the available tools.
 - Do NOT invent new tools.
-- **Reference Resolution**: If the query contains pronouns (it, that, they) or vague terms (the topic, more info, tell me more), you MUST resolve them using the CHAT HISTORY before deciding.
-- **Topic Persistence**: If the resolved topic was previously handled by `research_tool` or `web_search`, continue using that tool unless the user explicitly asks to switch.
+- **Reference Resolution**: If the query contains pronouns (it, that, they) or vague terms (the topic, more info),
+  you MUST resolve them using the CHAT HISTORY before deciding.
+- **Topic Persistence**: If the resolved topic was previously handled by `research_tool` or `web_search`,
+  continue using that tool unless the user explicitly asks to switch.
 - If the query directly asks to analyze, summarize, translate, or extract → use a tool.
 - If the query is general knowledge, a greeting, or simple conversation → use "no_tool".
-- **Crucial**: If the resolved query is "Tell me more about LangChain", this is NOT "general conversation". It is a request for more information on a specific topic, so use the relevant tool (`research_tool` or `web_search`).
+- **Crucial**: If the resolved query is "Tell me more about LangChain", this is NOT "general conversation".
+  It is a request for more information on a specific topic, so use the relevant tool (`research_tool` or `web_search`).
 
 ---
 

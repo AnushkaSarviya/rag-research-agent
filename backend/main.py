@@ -135,6 +135,16 @@ def chat_endpoint(request: RequestState):
             f"Query={query}, ToolRouting={request.use_tool_routing}"
         )
 
+        # Append assistant's response to conversation history
+        assistant_response = ""
+        if "summary" in response and response["summary"]:
+            assistant_response = response["summary"][0]
+        elif response.get("raw_response"):
+            assistant_response = response["raw_response"]
+
+        if assistant_response:
+            conversation_history[session_id].append(assistant_response)
+
         # Add metadata
         response["latency"] = latency
         response["model_used"] = llm_id
