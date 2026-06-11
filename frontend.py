@@ -293,8 +293,8 @@ with st.sidebar:
         allow_web_search = st.toggle("Enable Web Search", value=True)
         use_tool_routing = st.toggle("Enable Tool Router", value=True)
 
-    with st.expander("▪ Prompt Engineering", expanded=False):
-        ADVANCED_PROMPT = """You are an AI assistant that answers user queries using:
+    # Default Advanced System Prompt used for backend communication
+    ADVANCED_PROMPT = """You are an AI assistant that answers user queries using:
 
 1. Current query
 2. Short-term memory (recent conversation)
@@ -352,7 +352,36 @@ DO NOT include:
 - reasoning steps
 - system explanations
 - references to memory"""
-        SYSTEM_PROMPT = st.text_area("System Prompt", value=ADVANCED_PROMPT, height=400)
+    SYSTEM_PROMPT = ADVANCED_PROMPT
+
+    with st.expander("📁 Document Ingestion (RAG)", expanded=False):
+        uploaded_file = st.file_uploader(
+            "Upload reference document",
+            type=["pdf", "txt", "md"],
+            help="Upload a PDF, TXT, or MD file to add to the RAG knowledge base."
+        )
+        if uploaded_file is not None:
+            import os
+            os.makedirs("scratch", exist_ok=True)
+            temp_path = os.path.abspath(os.path.join("scratch", uploaded_file.name))
+            with open(temp_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+
+            if st.button("Ingest Document", use_container_width=True):
+                with st.spinner("Ingesting into vector store..."):
+                    try:
+                        ingest_url = "http://127.0.0.1:9999/ingest"
+                        resp = requests.post(ingest_url, params={"file_path": temp_path}, timeout=60)
+                        if resp.status_code == 200:
+                            res_data = resp.json()
+                            if res_data.get("status") == "success":
+                                st.success(f"Ingested {res_data.get('chunks_added')} chunks!")
+                            else:
+                                st.error(f"Ingestion failed: {res_data.get('message')}")
+                        else:
+                            st.error(f"Error {resp.status_code}: {resp.text}")
+                    except Exception as e:
+                        st.error(f"Connection error: {e}")
 
     st.markdown("---")
     if st.button("x Clear Chat History", use_container_width=True):
