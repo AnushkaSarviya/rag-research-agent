@@ -1,0 +1,54 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# .dockerignore
+#
+# WHY this file?
+# ──────────────
+# Docker sends the entire build context (current directory) to the daemon
+# before building. Without .dockerignore, it sends .venv (500+ MB),
+# .git history, vector_store data, and secrets — making builds slow and
+# potentially leaking API keys into the image layers.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Virtual environments (huge, not needed — we pip install in the Dockerfile)
+.venv/
+venv/
+env/
+
+# Git history (not needed in the image)
+.git/
+.gitignore
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment secrets (NEVER bake into the image)
+.env
+.env.*
+
+# Data directories (mounted as volumes at runtime)
+vector_store/
+uploads/
+data/
+
+# IDE and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Documentation (not needed at runtime)
+*.md
+!README.md
+
+# Frontend (separate build if containerized)
+frontend.py
+
+# Scratch and temp
+scratch/
+*.tmp
+*.bak
+*.log

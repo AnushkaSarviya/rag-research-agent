@@ -43,3 +43,8 @@ logs/
 # Temporary files
 *.tmp
 *.bak
+
+# Databases and data directory
+*.db
+data/
+

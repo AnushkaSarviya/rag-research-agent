@@ -1,0 +1,59 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Docker Compose for RAG Agent Backend
+#
+# WHY docker-compose?
+# ───────────────────
+# Even for a single service, docker-compose gives you:
+# 1. Declarative volume mounts (no long `docker run -v` flags)
+# 2. Environment file loading (.env)
+# 3. Reproducible `docker compose up` for any team member
+# 4. Easy to add services later (Redis, PostgreSQL, frontend)
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    ports:
+      - "9999:9999"
+
+    # ── Volumes ────────────────────────────────────────────────────────────
+    # WHY volumes?
+    # Without volumes, all data inside the container is ephemeral — it's
+    # lost when the container stops. Volumes persist data on the host.
+    #
+    # vector_store: The FAISS index files. Without this volume, every
+    #   container restart would lose all ingested documents.
+    #
+    # uploads: Temporary upload directory. Bind-mounted so you can
+    #   inspect uploaded files from the host if needed.
+    #
+    # data: SQLite database for chat history persistence.
+    volumes:
+      - ./vector_store:/app/vector_store
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+
+    # ── Environment ────────────────────────────────────────────────────────
+    # Load API keys from .env file (never bake secrets into the image!)
+    env_file:
+      - .env
+
+    # ── Health check ───────────────────────────────────────────────────────
+    # Compose-level health check (supplements the Dockerfile HEALTHCHECK).
+    # This is used by `docker compose up --wait` to know when the service
+    # is ready to accept traffic.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9999/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    # ── Restart policy ─────────────────────────────────────────────────────
+    # "unless-stopped" restarts the container on crash but not if you
+    # explicitly `docker compose stop`. This is the right default for
+    # development — in production you'd use an orchestrator (K8s).
+    restart: unless-stopped

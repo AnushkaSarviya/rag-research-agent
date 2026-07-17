@@ -47,149 +47,102 @@ lottie_ai = load_lottieurl(
 # ───────────── CUSTOM CSS ───────────────────────────────────────────────────
 custom_css = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
 /* ── Reset ────────────────────────────────────── */
 html, body, [class*="css"] {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: #c9d1d9;
+    color: #ececec;
 }
 
-/* ── Ombre background & Glows ─────────────────────────── */
+/* ── Backgrounds & Layout ─────────────────────────── */
 .stApp {
-    background: linear-gradient(168deg, #0a0a0f 0%, #0d1117 30%, #111827 60%, #0d1117 100%) !important;
-    background-attachment: fixed !important;
+    background-color: #0e1117 !important;
 }
 
-.stApp::before {
-    content: '';
-    position: fixed;
-    top: -40%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80vw;
-    height: 60vh;
-    background: radial-gradient(ellipse, rgba(99,102,241,0.06) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 0;
+/* Main app padding for minimalism */
+.block-container {
+    padding-top: 3rem !important;
+    padding-bottom: 5rem !important;
+    max-width: 48rem !important; /* Keep chat centered and readable */
 }
 
 /* ── Sidebar ──────────────────────────────────── */
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, rgba(10,10,15,0.97) 0%, rgba(13,17,23,0.97) 100%) !important;
-    border-right: 1px solid rgba(255,255,255,0.04);
+    background-color: #161b22 !important;
+    border-right: 1px solid #30363d;
 }
 
 [data-testid="stSidebar"] * {
-    color: #8b949e !important;
+    color: #c9d1d9 !important;
 }
 
-[data-testid="stSidebar"] .stSelectbox label,
-[data-testid="stSidebar"] .stRadio label,
-[data-testid="stSidebar"] .stTextArea label {
+[data-testid="stSidebar"] h1, 
+[data-testid="stSidebar"] h2, 
+[data-testid="stSidebar"] h3 {
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     color: #8b949e !important;
-    font-weight: 500;
-    font-size: 0.82rem;
-    letter-spacing: 0.3px;
 }
 
 /* ── Typography ───────────────────────────────── */
 h1 {
-    text-align: center;
-    color: #e6edf3 !important;
-    font-size: 3rem !important;
-    font-weight: 800 !important;
-    letter-spacing: -1px;
-    margin-bottom: 0.2rem !important;
-    background: linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #00c6ff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent !important;
-    text-shadow: 0 0 40px rgba(0, 242, 254, 0.2);
+    color: #f0f6fc !important;
+    font-size: 2.2rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.5rem !important;
 }
 
 h3 {
-    color: #8b949e !important;
-    font-size: 0.85rem !important;
+    font-size: 1rem !important;
     font-weight: 600 !important;
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
-    margin-top: 1.2rem !important;
-    margin-bottom: 0.6rem !important;
-}
-
-.sidebar-heading {
-    text-align: center;
-    color: #c9d1d9 !important;
-    font-size: 1.1rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    margin-bottom: 0.5rem;
+    margin-top: 1rem !important;
+    margin-bottom: 0.5rem !important;
 }
 
 /* ── Chat messages ────────────────────────────── */
 .stChatMessage {
-    background: rgba(22, 27, 34, 0.5) !important;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.08) !important;
-    padding: 1rem;
-    margin-bottom: 0.8rem;
-    backdrop-filter: blur(10px);
-}
-
-/* ── Tool decision badges ──────── */
-.tool-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 16px;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-}
-
-.tool-badge-research {
-    background: rgba(99,102,241,0.12);
-    color: #818cf8;
-    border: 1px solid rgba(99,102,241,0.25);
-    box-shadow: 0 0 20px rgba(99,102,241,0.1);
-}
-
-.tool-badge-web {
-    background: rgba(52,211,153,0.1);
-    color: #6ee7b7;
-    border: 1px solid rgba(52,211,153,0.25);
-    box-shadow: 0 0 20px rgba(52,211,153,0.1);
-}
-
-.tool-badge-notool {
-    background: rgba(139,148,158,0.08);
-    color: #94a3b8;
-    border: 1px solid rgba(139,148,158,0.2);
-}
-
-.tool-input-hint {
-    font-size: 0.72rem;
-    color: #6e7681;
-    margin-bottom: 15px;
-    font-style: italic;
+    background: transparent !important;
+    border: none !important;
+    padding: 0.5rem 0 !important;
+    margin-bottom: 1rem;
+    border-radius: 0;
 }
 
 /* ── Buttons ──────────────────────────────────── */
 .stButton > button {
-    background: rgba(30, 41, 59, 0.7) !important;
-    color: #f1f5f9 !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
-    border-radius: 10px !important;
-    transition: all 0.3s ease;
+    background-color: #21262d !important;
+    color: #c9d1d9 !important;
+    border: 1px solid rgba(240, 246, 252, 0.1) !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease;
 }
 
 .stButton > button:hover {
-    background: rgba(51, 65, 85, 0.9) !important;
-    border-color: #38bdf8 !important;
-    box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+    background-color: #30363d !important;
+    border-color: #8b949e !important;
+}
+
+/* ── Expanders ────────────────────────────────── */
+div[data-testid="stExpander"] {
+    border: 1px solid #30363d !important;
+    border-radius: 8px !important;
+    background-color: #161b22 !important;
+    box-shadow: none !important;
+}
+
+/* ── Inputs ───────────────────────────────────── */
+.stTextInput>div>div>input, .stChatInput>div {
+    border-radius: 8px !important;
+    border: 1px solid #30363d !important;
+    background-color: #161b22 !important;
+}
+.stChatInput>div:focus-within {
+    border-color: #58a6ff !important;
 }
 
 /* ── Hide branding ────────────────────────────── */
@@ -272,26 +225,30 @@ def render_response(data: dict):
 
 
 # ───────────── STATE INIT ────────────────────────────────────────────────────
+# ───────────── STATE INIT ────────────────────────────────────────────────────
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "show_sidebar" not in st.session_state:
-    st.session_state.show_sidebar = True
 
 
 # ───────────── SIDEBAR CONFIG ────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("<div class='sidebar-heading'>≡ Configuration</div>", unsafe_allow_html=True)
+    st.markdown("<h2 style='margin-top: 0; margin-bottom: 0.2rem; color: #f0f6fc; font-weight: 600;'>◆ Agentic Studio</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size: 0.8rem; color: #8b949e; margin-bottom: 1.5rem;'>Production-Grade RAG Assistant</p>", unsafe_allow_html=True)
+
+    st.markdown("### Model Configuration")
+    provider = st.radio("📡 Provider", ("Groq", "OpenRouter"), horizontal=True, label_visibility="collapsed")
+    MODEL_NAMES_GROQ = ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"]
+    MODEL_NAMES_OPENROUTER = ["meta-llama/llama-3.1-70b-instruct"]
+    selected_model = st.selectbox(
+        "Model", 
+        MODEL_NAMES_GROQ if provider == "Groq" else MODEL_NAMES_OPENROUTER,
+        label_visibility="collapsed"
+    )
+
     st.markdown("---")
-
-    with st.expander("▪ Model Selection", expanded=True):
-        provider = st.radio("📡 Provider", ("Groq", "OpenRouter"), horizontal=True)
-        MODEL_NAMES_GROQ = ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"]
-        MODEL_NAMES_OPENROUTER = ["meta-llama/llama-3.1-70b-instruct"]
-        selected_model = st.selectbox("Model", MODEL_NAMES_GROQ if provider == "Groq" else MODEL_NAMES_OPENROUTER)
-
-    with st.expander("≡ Tool Settings", expanded=False):
-        allow_web_search = st.toggle("Enable Web Search", value=True)
-        use_tool_routing = st.toggle("Enable Tool Router", value=True)
+    st.markdown("### Engine Capabilities")
+    allow_web_search = st.toggle("Enable Web Search (Tavily)", value=True)
+    use_tool_routing = st.toggle("Enable Smart Routing", value=True)
 
     # Default Advanced System Prompt used for backend communication
     ADVANCED_PROMPT = """You are an AI assistant that answers user queries using:
@@ -354,11 +311,13 @@ DO NOT include:
 - references to memory"""
     SYSTEM_PROMPT = ADVANCED_PROMPT
 
-    with st.expander("📁 Document Ingestion (RAG)", expanded=False):
+    st.markdown("---")
+    with st.expander("📁 Add Context (RAG)", expanded=False):
         uploaded_file = st.file_uploader(
             "Upload reference document",
             type=["pdf", "txt", "md"],
-            help="Upload a PDF, TXT, or MD file to add to the RAG knowledge base."
+            help="Upload a PDF, TXT, or MD file to add to the RAG knowledge base.",
+            label_visibility="collapsed"
         )
         if uploaded_file is not None:
             import os
@@ -371,7 +330,9 @@ DO NOT include:
                 with st.spinner("Ingesting into vector store..."):
                     try:
                         ingest_url = "http://127.0.0.1:9999/ingest"
-                        resp = requests.post(ingest_url, params={"file_path": temp_path}, timeout=60)
+                        with open(temp_path, "rb") as f:
+                            files = {"file": (uploaded_file.name, f, "application/octet-stream")}
+                            resp = requests.post(ingest_url, files=files, timeout=60)
                         if resp.status_code == 200:
                             res_data = resp.json()
                             if res_data.get("status") == "success":
@@ -388,21 +349,20 @@ DO NOT include:
         st.session_state.messages = []
         st.rerun()
 
-if not st.session_state.show_sidebar:
-    st.markdown("<style>div[data-testid='stSidebar'] {display: none !important;}</style>", unsafe_allow_html=True)
-    st.markdown("<style>section[data-testid='stSidebar'] {display: none !important;}</style>", unsafe_allow_html=True)
-
 # ───────────── MAIN LAYOUT ───────────────────────────────────────────────────
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    if lottie_ai:
-        st_lottie(lottie_ai, height=120, key="ai_robot")
-
+# Header status bar representing current configuration
 c1, c2 = st.columns([8, 2])
+with c1:
+    st.markdown(
+        f"<span style='color: #8b949e; font-size: 0.85rem;'>Active: <strong>{selected_model}</strong></span>",
+        unsafe_allow_html=True
+    )
 with c2:
-    if st.button("≡ Settings" if not st.session_state.show_sidebar else "x Hide", use_container_width=True):
-        st.session_state.show_sidebar = not st.session_state.show_sidebar
-        st.rerun()
+    st.markdown(
+        f"<span style='color: #8b949e; font-size: 0.85rem; float: right;'>Routing: <strong>{'ON' if use_tool_routing else 'OFF'}</strong></span>",
+        unsafe_allow_html=True
+    )
+st.markdown("---")
 
 st.markdown("<h1>Agentic Studio</h1>", unsafe_allow_html=True)
 
