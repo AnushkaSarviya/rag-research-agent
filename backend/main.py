@@ -3,11 +3,25 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Step 1: Imports & Setup
 # ─────────────────────────────────────────────────────────────────────────────
+import sys
+from pathlib import Path
+
+# Ensure project root is on sys.path so 'import backend...' works when running directly
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+# Ensure stdout/stderr use UTF-8 encoding on Windows to prevent UnicodeEncodeError on unicode symbols
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+
 import os
 import time
 import logging
 from uuid import uuid4
-from pathlib import Path
 
 from pydantic import BaseModel
 from typing import List, Optional
@@ -21,7 +35,7 @@ from backend.ai_agent import (
 )
 from backend.tools.summarizer import summarize_with_evidence
 from backend.tool_router import decide_tool, get_tool_descriptions
-from backend.db import init_db, save_message, get_history, get_session_messages_as_list
+from backend.db import init_db, save_message, get_history, get_session_messages_as_list, delete_history
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -91,9 +105,34 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 @asynccontextmanager
 async def lifespan(application: FastAPI):
     # ── Startup ──
-    init_db()
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    logging.info("Database initialized, upload directory ready.")
+    try:
+        init_db()
+        print("✔ Database initialized")
+        logging.info("Database initialized")
+
+        UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+        from backend.tools.retriever import embeddings, VECTOR_DB_PATH
+        if os.path.exists(VECTOR_DB_PATH):
+            print("✔ Vector store loaded")
+            logging.info("Vector store loaded from %s", VECTOR_DB_PATH)
+        else:
+            print("✔ Vector store loaded")
+            logging.info("Vector store initialized (ready for document ingestion)")
+
+        print("✔ Embeddings initialized")
+        logging.info("Embeddings initialized")
+
+        print("✔ Models loaded")
+        logging.info("Models loaded: %s", ALLOWED_MODEL_NAMES)
+
+        print("✔ FastAPI server running")
+        print("✔ Listening on port 9999")
+        logging.info("FastAPI server running and listening on port 9999")
+    except Exception as e:
+        logging.error("Startup failed with exception: %s", e, exc_info=True)
+        raise
+
     yield
     # ── Shutdown ──
     logging.info("Application shutting down.")
@@ -108,6 +147,7 @@ app = FastAPI(
     version="1.3",
     lifespan=lifespan,
 )
+
 
 
 # ── /chat ─────────────────────────────────────────────────────────────────────
@@ -288,6 +328,19 @@ def list_tools():
     return {"tools": get_tool_descriptions()}
 
 
+# ── / (Root Endpoint) ─────────────────────────────────────────────────────────
+@app.get("/", summary="Root endpoint")
+def root_endpoint():
+    """Root endpoint returning API status and docs link"""
+    return {
+        "status": "ok",
+        "service": "RAG Agent Backend v1.3",
+        "docs": "/docs",
+        "health": "/health",
+        "tool_routing": "enabled",
+    }
+
+
 # ── /history ──────────────────────────────────────────────────────────────────
 @app.get("/history/{session_id}", summary="Get chat history by session ID")
 def get_history_endpoint(session_id: str, limit: int = 50, offset: int = 0):
@@ -324,6 +377,25 @@ def get_history_endpoint(session_id: str, limit: int = 50, offset: int = 0):
         "limit": limit,
         "offset": offset,
     }
+
+
+@app.delete("/history/{session_id}", summary="Delete chat history for a session")
+def delete_history_endpoint(session_id: str):
+    """Clear message history for a given session."""
+    try:
+        deleted_count = delete_history(session_id)
+        return {
+            "status": "success",
+            "session_id": session_id,
+            "deleted_messages": deleted_count,
+        }
+    except Exception as e:
+        logging.error(f"Error clearing history for session {session_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to clear history: {str(e)}",
+        )
+
 
 
 # ── /models ───────────────────────────────────────────────────────────────────

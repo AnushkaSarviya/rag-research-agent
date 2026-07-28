@@ -154,3 +154,18 @@ def get_session_messages_as_list(session_id: str) -> List[str]:
         return [r["content"] for r in rows]
     finally:
         conn.close()
+
+
+def delete_history(session_id: str) -> int:
+    """
+    Delete all messages for a given session_id from SQLite.
+    Returns the number of deleted rows.
+    """
+    conn = get_connection()
+    try:
+        cursor = conn.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+        conn.commit()
+        return cursor.rowcount
+    finally:
+        conn.close()
+
