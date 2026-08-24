@@ -1,473 +1,268 @@
-﻿# ───────────── IMPORTS ───────────────────────────────────────────────────────
-# FIX #1: Removed the auto-pip-install block (dependencies managed via requirements.txt).
+﻿# ─────────── IMPORTS ─────────────────────────────────────────────────────────
 import os
 import uuid
 from datetime import date
 
 import requests
 import streamlit as st
-from streamlit_lottie import st_lottie  # noqa: F401
 
 
-# ───────────── API CONFIG ────────────────────────────────────────────────────
-# FIX #2: Environment variable with safe fallback for Docker / local development.
+# ─────────── API CONFIG ──────────────────────────────────────────────────────
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:9999")
 
 
-# ───────────── PAGE CONFIG ───────────────────────────────────────────────────
+# ─────────── PAGE CONFIG ─────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Agentic Studio",
-    page_icon="◆",
+    page_icon="✦",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 
-# ───────────── HELPER ────────────────────────────────────────────────────────
-def load_lottieurl(url: str):
-    try:
-        r = requests.get(url, timeout=5)
-        if r.status_code != 200:
-            return None
-        return r.json()
-    except Exception:
-        return None
-
-
-lottie_ai = load_lottieurl(
-    "https://assets3.lottiefiles.com/packages/lf20_dbbxfnjo.json"
-)
-
-
-# ───────────── CUSTOM CSS (DARK FUTURISTIC GLASSMORPHISM THEME) ─────────────
-custom_css = """
+# ─────────── CUSTOM CSS ───────────────────────────────────────────────────────
+st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-/* ── Reset & Global Typography ────────────────── */
-html, body, [class*="css"] {
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    color: #e2e8f0;
+html, body, [class*="st-"] {
+    font-family: 'Inter', -apple-system, sans-serif !important;
 }
-
-/* ── Background Gradients & Ambient Glow ──────── */
-.stApp {
-    background: radial-gradient(circle at 15% 15%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
-                radial-gradient(circle at 85% 85%, rgba(0, 229, 255, 0.12) 0%, transparent 40%),
-                radial-gradient(circle at 50% 50%, rgba(236, 72, 153, 0.06) 0%, transparent 60%),
-                #080C14 !important;
-    background-attachment: fixed !important;
-}
-
-/* Main Container Layout */
+.stApp { background: #0D1117 !important; }
 .block-container {
-    padding-top: 2rem !important;
-    padding-bottom: 6rem !important;
-    max-width: 52rem !important;
+    padding-top: 1.5rem !important;
+    padding-bottom: 5rem !important;
+    max-width: 56rem !important;
 }
+p, span, li, td, th, label, div { color: #C9D1D9 !important; }
 
-/* ── Typography & Headers ─────────────────────── */
-.header-container {
-    margin-bottom: 2rem;
-}
-
-.main-header-title {
-    background: linear-gradient(135deg, #00E5FF 0%, #8B5CF6 50%, #EC4899 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-size: 2.5rem;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.main-header-subtitle {
-    color: #94a3b8;
-    font-size: 0.95rem;
-    font-weight: 500;
-    margin-top: 0.3rem;
-}
-
-/* ── Sidebar Glassmorphism ────────────────────── */
 [data-testid="stSidebar"] {
-    background: rgba(13, 17, 29, 0.85) !important;
-    backdrop-filter: blur(24px) !important;
-    -webkit-backdrop-filter: blur(24px) !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: #161B22 !important;
+    border-right: 1px solid #21262D !important;
 }
+[data-testid="stSidebar"] * { color: #C9D1D9 !important; }
 
-[data-testid="stSidebar"] * {
-    color: #cbd5e1 !important;
+.app-header {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.5rem 0 1rem 0;
+    border-bottom: 1px solid #21262D;
+    margin-bottom: 1.25rem;
 }
-
-.sidebar-brand {
-    padding: 0.5rem 0 1.25rem 0;
+.app-header-title {
+    font-size: 1.5rem; font-weight: 700;
+    background: linear-gradient(135deg, #58A6FF 0%, #BC8CFF 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin: 0; line-height: 1;
 }
+.app-header-sub { font-size: 0.82rem; color: #6E7681 !important; margin-top: 0.15rem; }
 
-.sidebar-brand-title {
-    background: linear-gradient(135deg, #00E5FF, #8B5CF6);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-size: 1.35rem;
-    font-weight: 700;
-    margin: 0;
+.pill-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.pill {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.22rem 0.65rem; border-radius: 20px;
+    font-size: 0.76rem; font-weight: 500;
+    background: #161B22; border: 1px solid #21262D; color: #8B949E !important;
 }
+.pill-blue   { border-color: #1F6FEB44; color: #58A6FF !important; }
+.pill-purple { border-color: #BC8CFF44; color: #BC8CFF !important; }
+.pill-green  { border-color: #3FB95044; color: #3FB950 !important; }
+.pill-gray   { border-color: #30363D;   color: #6E7681 !important; }
 
-.sidebar-brand-subtitle {
-    font-size: 0.78rem;
-    color: #64748b;
-    margin-top: 0.2rem;
-    font-weight: 500;
-}
-
-/* ── Sidebar Cards & Containers ───────────────── */
-.sidebar-section-title {
-    font-size: 0.75rem !important;
-    font-weight: 700 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #00E5FF !important;
-    margin-bottom: 0.75rem;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-}
-
-/* ── Chat Message Cards ───────────────────────── */
 .stChatMessage {
-    background: rgba(15, 23, 42, 0.65) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 16px !important;
-    padding: 1.25rem !important;
-    margin-bottom: 1.25rem !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    animation: fadeInSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    transition: border-color 0.25s ease, box-shadow 0.25s ease;
-}
-
-.stChatMessage:hover {
-    border-color: rgba(0, 229, 255, 0.25) !important;
-    box-shadow: 0 12px 36px rgba(0, 229, 255, 0.08) !important;
-}
-
-@keyframes fadeInSlide {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* ── Tool Badges ──────────────────────────────── */
-.tool-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.35rem 0.85rem;
-    border-radius: 20px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    letter-spacing: 0.02em;
-    backdrop-filter: blur(8px);
-}
-.tool-badge-research {
-    background: rgba(0, 229, 255, 0.12);
-    color: #00E5FF;
-    border: 1px solid rgba(0, 229, 255, 0.35);
-    box-shadow: 0 0 14px rgba(0, 229, 255, 0.25);
-}
-.tool-badge-web {
-    background: rgba(236, 72, 153, 0.12);
-    color: #EC4899;
-    border: 1px solid rgba(236, 72, 153, 0.35);
-    box-shadow: 0 0 14px rgba(236, 72, 153, 0.25);
-}
-.tool-badge-notool {
-    background: rgba(139, 92, 246, 0.12);
-    color: #A78BFA;
-    border: 1px solid rgba(139, 92, 246, 0.35);
-    box-shadow: 0 0 14px rgba(139, 92, 246, 0.25);
-}
-.tool-input-hint {
-    font-size: 0.78rem;
-    color: #94a3b8;
-    margin-bottom: 0.85rem;
-    font-family: 'JetBrains Mono', monospace;
-}
-
-/* ── Buttons (Gradient & Micro-interactions) ── */
-.stButton > button {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(0, 229, 255, 0.25)) !important;
-    color: #f8fafc !important;
-    border: 1px solid rgba(0, 229, 255, 0.3) !important;
-    border-radius: 10px !important;
-    font-weight: 600 !important;
-    font-size: 0.85rem !important;
-    letter-spacing: 0.01em !important;
-    padding: 0.55rem 1rem !important;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2) !important;
-}
-
-.stButton > button:hover {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.45), rgba(0, 229, 255, 0.45)) !important;
-    border-color: #00E5FF !important;
-    box-shadow: 0 0 22px rgba(0, 229, 255, 0.4) !important;
-    transform: translateY(-2px) !important;
-}
-
-.stButton > button:active {
-    transform: translateY(0) !important;
-}
-
-/* Download button */
-div[data-testid="stDownloadButton"] > button {
-    background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(139, 92, 246, 0.25)) !important;
-    border: 1px solid rgba(6, 182, 212, 0.4) !important;
-    border-radius: 10px !important;
-    color: #f8fafc !important;
-    font-weight: 600 !important;
-    font-size: 0.85rem !important;
-    transition: all 0.25s ease !important;
-}
-
-div[data-testid="stDownloadButton"] > button:hover {
-    border-color: #00E5FF !important;
-    box-shadow: 0 0 22px rgba(0, 229, 255, 0.4) !important;
-    transform: translateY(-2px) !important;
-}
-
-/* ── Expanders ────────────────────────────────── */
-div[data-testid="stExpander"] {
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: #161B22 !important;
+    border: 1px solid #21262D !important;
     border-radius: 12px !important;
-    background: rgba(15, 23, 42, 0.4) !important;
-    backdrop-filter: blur(12px) !important;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+    padding: 1.1rem 1.3rem !important;
     margin-bottom: 0.75rem !important;
+    box-shadow: none !important;
+    animation: fadeUp 0.2s ease;
+}
+.stChatMessage:has([data-testid="chatAvatarIcon-user"])      { border-left: 2px solid #1F6FEB !important; }
+.stChatMessage:has([data-testid="chatAvatarIcon-assistant"]) { border-left: 2px solid #BC8CFF !important; }
+.stChatMessage p, .stChatMessage span, .stChatMessage li {
+    color: #E6EDF3 !important; font-size: 0.91rem !important; line-height: 1.7 !important;
+}
+.stChatMessage strong { color: #F0F6FC !important; }
+.stChatMessage code {
+    background: #0D1117 !important; color: #79C0FF !important;
+    padding: 0.1em 0.35em !important; border-radius: 4px !important;
+    font-family: 'JetBrains Mono', monospace !important; font-size: 0.83em !important;
+}
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
-div[data-testid="stExpander"] summary {
-    font-weight: 600 !important;
-    color: #cbd5e1 !important;
-    transition: color 0.2s ease !important;
+.tool-badge {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.25rem 0.7rem; border-radius: 20px;
+    font-size: 0.76rem; font-weight: 600;
+    margin-bottom: 0.5rem; letter-spacing: 0.01em;
+}
+.tb-research { background:#1F6FEB15; color:#58A6FF !important; border:1px solid #1F6FEB44; }
+.tb-web      { background:#F7857515; color:#F78575 !important; border:1px solid #F7857544; }
+.tb-notool   { background:#BC8CFF15; color:#BC8CFF !important; border:1px solid #BC8CFF44; }
+.tool-hint {
+    font-size: 0.77rem; color: #6E7681 !important;
+    font-family: 'JetBrains Mono', monospace !important; margin-bottom: 0.75rem;
 }
 
-div[data-testid="stExpander"] summary:hover {
-    color: #00E5FF !important;
-}
-
-/* ── Chat Input ───────────────────────────────── */
-.stChatInput>div {
-    border-radius: 16px !important;
-    border: 1px solid rgba(0, 229, 255, 0.3) !important;
-    background: rgba(15, 23, 42, 0.85) !important;
-    backdrop-filter: blur(20px) !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-.stChatInput>div:focus-within {
-    border-color: #00E5FF !important;
-    box-shadow: 0 0 30px rgba(0, 229, 255, 0.4) !important;
-}
-
-/* ── File Uploader ────────────────────────────── */
-div[data-testid="stFileUploader"] {
-    border: 2px dashed rgba(0, 229, 255, 0.35) !important;
-    border-radius: 14px !important;
-    background: rgba(15, 23, 42, 0.4) !important;
-    padding: 1rem !important;
-    transition: all 0.3s ease !important;
-}
-
-div[data-testid="stFileUploader"]:hover {
-    border-color: #00E5FF !important;
-    box-shadow: 0 0 24px rgba(0, 229, 255, 0.25) !important;
-    background: rgba(15, 23, 42, 0.65) !important;
-}
-
-/* ── Form Inputs & Selects ────────────────────── */
-div[data-baseweb="select"] > div {
-    background-color: rgba(15, 23, 42, 0.8) !important;
-    border-color: rgba(255, 255, 255, 0.12) !important;
-    border-radius: 10px !important;
-}
-
-div[data-baseweb="select"] > div:hover {
-    border-color: #00E5FF !important;
-}
-
-/* ── Status Widget ────────────────────────────── */
-div[data-testid="stStatusWidget"] {
-    border-radius: 12px !important;
-    border: 1px solid rgba(139, 92, 246, 0.35) !important;
-    background: rgba(15, 23, 42, 0.75) !important;
-}
-
-/* ── Hero Starter Cards ───────────────────────── */
 .hero-card {
-    background: rgba(15, 23, 42, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 1.25rem;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(12px);
-    height: 100%;
+    background: #161B22; border: 1px solid #21262D; border-radius: 12px;
+    padding: 1.2rem; height: 100%;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.hero-card:hover { border-color: #388BFD55; transform: translateY(-2px); }
+.hero-icon  { font-size: 1.4rem; margin-bottom: 0.5rem; }
+.hero-title { font-weight: 700; color: #E6EDF3 !important; font-size: 0.95rem; margin-bottom: 0.3rem; }
+.hero-desc  { color: #8B949E !important; font-size: 0.83rem; line-height: 1.55; }
+
+.stChatInput > div {
+    border-radius: 12px !important; border: 1px solid #30363D !important;
+    background: #161B22 !important; transition: border-color 0.2s ease !important;
+}
+.stChatInput > div:focus-within { border-color: #388BFD !important; box-shadow: 0 0 0 3px #388BFD18 !important; }
+.stChatInput textarea             { color: #E6EDF3 !important; }
+.stChatInput textarea::placeholder{ color: #484F58 !important; }
+
+.stButton > button {
+    background: #21262D !important; color: #C9D1D9 !important;
+    border: 1px solid #30363D !important; border-radius: 8px !important;
+    font-weight: 500 !important; font-size: 0.84rem !important;
+    transition: all 0.15s ease !important;
+}
+.stButton > button:hover { background: #30363D !important; border-color: #388BFD66 !important; color: #E6EDF3 !important; }
+
+div[data-testid="stDownloadButton"] > button {
+    background: #21262D !important; color: #C9D1D9 !important;
+    border: 1px solid #30363D !important; border-radius: 8px !important;
+    font-size: 0.84rem !important; font-weight: 500 !important;
+    transition: all 0.15s ease !important;
+}
+div[data-testid="stDownloadButton"] > button:hover { border-color: #388BFD66 !important; background: #30363D !important; }
+
+div[data-testid="stExpander"] {
+    background: #161B22 !important; border: 1px solid #21262D !important;
+    border-radius: 10px !important; margin-bottom: 0.6rem !important;
+}
+div[data-testid="stExpander"] summary { font-weight: 600 !important; color: #C9D1D9 !important; }
+div[data-testid="stExpander"] summary:hover { color: #58A6FF !important; }
+div[data-testid="stExpander"] p, div[data-testid="stExpander"] li { color: #C9D1D9 !important; }
+
+div[data-testid="stFileUploader"] {
+    border: 2px dashed #21262D !important; border-radius: 10px !important;
+    background: #0D1117 !important; transition: border-color 0.2s ease !important;
+}
+div[data-testid="stFileUploader"]:hover { border-color: #388BFD55 !important; }
+
+div[data-baseweb="select"] > div {
+    background: #161B22 !important; border-color: #30363D !important;
+    border-radius: 8px !important; color: #C9D1D9 !important;
+}
+div[data-baseweb="select"] > div:hover { border-color: #388BFD55 !important; }
+div[data-baseweb="popover"]            { background: #161B22 !important; border: 1px solid #30363D !important; }
+
+hr { border-color: #21262D !important; }
+.stCaption, [data-testid="stCaptionContainer"] { color: #6E7681 !important; }
+.stMarkdown a { color: #58A6FF !important; text-decoration: none; }
+.stMarkdown a:hover { text-decoration: underline; }
+
+.sb-brand-title {
+    font-size: 1.15rem; font-weight: 700;
+    background: linear-gradient(135deg, #58A6FF, #BC8CFF);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin: 0 0 0.15rem 0;
+}
+.sb-brand-sub { font-size: 0.76rem; color: #6E7681 !important; }
+.sb-section {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: #6E7681 !important; margin-bottom: 0.6rem;
 }
 
-.hero-card:hover {
-    border-color: rgba(0, 229, 255, 0.4);
-    transform: translateY(-3px);
-    box-shadow: 0 10px 30px rgba(0, 229, 255, 0.15);
-}
-
-.hero-card-icon {
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.hero-card-title {
-    font-weight: 700;
-    color: #f1f5f9;
-    font-size: 1rem;
-    margin-bottom: 0.3rem;
-}
-
-.hero-card-desc {
-    color: #94a3b8;
-    font-size: 0.83rem;
-    line-height: 1.4;
-}
-
-/* ── Top Status Pills ─────────────────────────── */
-.status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.3rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #cbd5e1;
-}
-
-.status-pill-active {
-    border-color: rgba(0, 229, 255, 0.4);
-    color: #00E5FF;
-}
-
-/* Hide Streamlit default chrome */
-#MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
-header {visibility: hidden;}
+#MainMenu { visibility: hidden; }
+footer    { visibility: hidden; }
 </style>
-"""
-st.markdown(custom_css, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 
-# ───────────── TOOL BADGE HELPER ─────────────────────────────────────────────
-TOOL_ICONS = {
-    "research_tool": ("›", "tool-badge-research", "RAG · Knowledge Base"),
-    "web_search":    ("»", "tool-badge-web",      "Web Search · Tavily"),
-    "no_tool":       ("·", "tool-badge-notool",   "Direct LLM · No Tool"),
+# ─────────── TOOL BADGE HELPER ────────────────────────────────────────────────
+TOOL_META = {
+    "research_tool": ("📚", "tb-research", "RAG · Knowledge Base"),
+    "web_search":    ("🌐", "tb-web",      "Web Search · Tavily"),
+    "no_tool":       ("💬", "tb-notool",   "Direct LLM"),
 }
 
 
 def render_tool_badge(tool_decision: dict):
-    tool = tool_decision.get("tool", "no_tool")
+    tool       = tool_decision.get("tool", "no_tool")
     tool_input = tool_decision.get("input", "")
-    icon, css_class, label = TOOL_ICONS.get(tool, ("▪", "tool-badge-notool", tool))
-
+    icon, css, label = TOOL_META.get(tool, ("▪", "tb-notool", tool))
     st.markdown(
-        f"""
-        <div class="tool-badge {css_class}">
-            {icon}&nbsp; Tool Router → <strong>{label}</strong>
-        </div>
-        <div class="tool-input-hint">&gt; Extracted input: <em>"{tool_input}"</em></div>
-        """,
+        f'<div class="tool-badge {css}">{icon} &nbsp;{label}</div>'
+        f'<div class="tool-hint">&gt; {tool_input}</div>',
         unsafe_allow_html=True,
     )
 
 
-# ───────────── RESPONSE RENDERER ─────────────────────────────────────────────
+# ─────────── RESPONSE RENDERER ────────────────────────────────────────────────
 def render_response(data: dict):
     if "tool_decision" in data:
         render_tool_badge(data["tool_decision"])
 
-    if "summary" in data and data["summary"]:
-        st.markdown("### ≡ Summary")
+    if data.get("summary"):
+        st.markdown("**Summary**")
         for item in data["summary"]:
             st.markdown(f"- {item}")
 
-    if "pros_cons" in data and (
-        data["pros_cons"].get("pros") or data["pros_cons"].get("cons")
-    ):
+    pc = data.get("pros_cons", {})
+    if pc.get("pros") or pc.get("cons"):
         with st.expander("⚖️ Pros & Cons", expanded=True):
             c1, c2 = st.columns(2)
             with c1:
-                if data["pros_cons"].get("pros"):
-                    st.markdown("#### ✓ Pros")
-                    for pro in data["pros_cons"]["pros"]:
+                if pc.get("pros"):
+                    st.markdown("**✓ Pros**")
+                    for pro in pc["pros"]:
                         st.markdown(f"- {pro}")
             with c2:
-                if data["pros_cons"].get("cons"):
-                    st.markdown("#### ✕ Cons")
-                    for con in data["pros_cons"]["cons"]:
+                if pc.get("cons"):
+                    st.markdown("**✕ Cons**")
+                    for con in pc["cons"]:
                         st.markdown(f"- {con}")
 
-    if "action_items" in data and data["action_items"]:
+    if data.get("action_items"):
         with st.expander("📋 Action Items", expanded=True):
             for item in data["action_items"]:
-                assignee = item.get("assignee", "Unassigned")
-                task = item.get("task", "")
-                deadline = item.get("deadline", "No deadline")
-                st.markdown(f"- **{task}** (Assignee: {assignee}, Deadline: {deadline})")
+                st.markdown(
+                    f"- **{item.get('task','')}** "
+                    f"— {item.get('assignee','Unassigned')} · {item.get('deadline','No deadline')}"
+                )
 
-    if "citations" in data and data["citations"]:
-        with st.expander("📚 Citations", expanded=False):
-            for citation in data["citations"]:
-                st.markdown(f"- `{citation}`")
+    if data.get("citations"):
+        with st.expander("📚 Sources", expanded=False):
+            for c in data["citations"]:
+                st.markdown(f"- `{c}`")
 
-    # Latency + Model metadata caption
     if "latency" in data:
         st.caption(
-            f"~ {data['latency']}s | "
-            f"Model: {data.get('model_used', 'N/A')} | "
-            f"Session: {data.get('session_id', 'N/A')}"
+            f"⏱ {data['latency']}s · {data.get('model_used','N/A')} · "
+            f"Session `{str(data.get('session_id',''))[:8]}`"
         )
 
 
-# ───────────── STATE INIT ────────────────────────────────────────────────────
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-if "session_id" not in st.session_state:
-    st.session_state.session_id = str(uuid.uuid4())
-
+# ─────────── SESSION STATE ────────────────────────────────────────────────────
+if "messages"       not in st.session_state:
+    st.session_state.messages       = []
+if "session_id"     not in st.session_state:
+    st.session_state.session_id     = str(uuid.uuid4())
 if "ingested_files" not in st.session_state:
     st.session_state.ingested_files = []
 
 
-# ───────────── EXPORT HELPER ─────────────────────────────────────────────────
 def build_chat_export() -> str:
-    """Formats conversation as Markdown for export."""
     today = date.today().isoformat()
     lines = [f"## Chat Export — {st.session_state.session_id} — {today}", ""]
     for msg in st.session_state.messages:
-        role = msg["role"]
-        content = msg["content"]
+        role, content = msg["role"], msg["content"]
         if role == "user":
             lines.append(f"**User:** {content}")
         else:
@@ -482,234 +277,159 @@ def build_chat_export() -> str:
     return "\n".join(lines)
 
 
-# ───────────── SIDEBAR CONFIG ────────────────────────────────────────────────
+# ─────────── SIDEBAR ──────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown(
-        """
-        <div class="sidebar-brand">
-            <h2 class="sidebar-brand-title">◆ Agentic Studio</h2>
-            <div class="sidebar-brand-subtitle">Production RAG & Autonomous Agent</div>
+    st.markdown("""
+        <div style="padding:0.5rem 0 1rem 0">
+            <div class="sb-brand-title">✦ Agentic Studio</div>
+            <div class="sb-brand-sub">RAG · Web Search · Memory</div>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    """, unsafe_allow_html=True)
 
-    st.markdown("<div class='sidebar-section-title'>📡 Model Configuration</div>", unsafe_allow_html=True)
+    st.markdown('<div class="sb-section">📡 Model</div>', unsafe_allow_html=True)
     provider = st.radio("Provider", ("Groq", "OpenRouter"), horizontal=True, label_visibility="collapsed")
-    MODEL_NAMES_GROQ = ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"]
-    MODEL_NAMES_OPENROUTER = ["meta-llama/llama-3.1-70b-instruct"]
-    selected_model = st.selectbox(
-        "Model",
-        MODEL_NAMES_GROQ if provider == "Groq" else MODEL_NAMES_OPENROUTER,
-        label_visibility="collapsed",
+    MODEL_MAP = {
+        "Groq":       ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"],
+        "OpenRouter": ["meta-llama/llama-3.1-70b-instruct"],
+    }
+    selected_model = st.selectbox("Model", MODEL_MAP[provider], label_visibility="collapsed")
+
+    st.markdown("---")
+    st.markdown('<div class="sb-section">⚡ Engine</div>', unsafe_allow_html=True)
+    allow_web_search = st.toggle("Web Search (Tavily)", value=True)
+    use_tool_routing = st.toggle("Smart Tool Routing",  value=True)
+
+    SYSTEM_PROMPT = (
+        "You are an AI assistant that answers user queries using:\n"
+        "1. Current query\n2. Short-term memory\n3. Long-term memory\n\n"
+        "USER QUERY: {query}\n"
+        "SHORT-TERM MEMORY: {chat_history}\n"
+        "LONG-TERM MEMORY: {long_term_memory}\n\n"
+        "Rules:\n"
+        "- Use memory ONLY if relevant\n"
+        "- Do NOT assume missing information\n"
+        "- Do NOT mention memory sources\n"
+        "- Provide a clear, concise, context-aware answer."
     )
 
     st.markdown("---")
-    st.markdown("<div class='sidebar-section-title'>⚡ Engine Capabilities</div>", unsafe_allow_html=True)
-    allow_web_search = st.toggle("Enable Web Search (Tavily)", value=True)
-    use_tool_routing = st.toggle("Enable Smart Routing", value=True)
-
-    ADVANCED_PROMPT = """You are an AI assistant that answers user queries using:
-
-1. Current query
-2. Short-term memory (recent conversation)
-3. Long-term memory (retrieved user data)
-
----
-
-INPUTS:
-
-USER QUERY:
-{query}
-
-SHORT-TERM MEMORY:
-{chat_history}
-
-LONG-TERM MEMORY:
-{long_term_memory}
-
----
-
-YOUR TASK:
-
-1. Understand the query.
-2. Use short-term memory to:
-   - maintain conversation flow
-   - resolve references (e.g., "it", "that")
-
-3. Use long-term memory to:
-   - personalize the response
-   - recall relevant past preferences or topics
-
----
-
-RULES:
-
-- Use memory ONLY if relevant
-- Do NOT assume missing information
-- Do NOT repeat unnecessary past details
-- Do NOT mention memory sources
-
----
-
-BEHAVIOR:
-
-- If memory is relevant → use it naturally
-- If not → ignore it completely
-
----
-
-OUTPUT:
-
-Provide a clear, concise, context-aware answer.
-
-DO NOT include:
-- reasoning steps
-- system explanations
-- references to memory"""
-    SYSTEM_PROMPT = ADVANCED_PROMPT
-
-    st.markdown("---")
-
-    # ── RAG / Ingest section ──────────────────────────────────────────────────
     with st.expander("📁 Add Context (RAG)", expanded=False):
         if not st.session_state.ingested_files:
-            st.info("No documents ingested yet. Upload a PDF, TXT, or MD file below.")
+            st.caption("No documents ingested yet.")
         else:
             for entry in st.session_state.ingested_files:
                 st.success(
-                    f"✓ **{entry['filename']}**\n"
-                    f"ID: `{entry['file_id'][:8]}…` | {entry['chunks_added']} chunks"
+                    f"✓ **{entry['filename']}**  \n"
+                    f"`{entry['file_id'][:8]}…` · {entry['chunks_added']} chunks"
                 )
 
         uploaded_file = st.file_uploader(
-            "Upload reference document",
+            "Upload PDF / TXT / MD",
             type=["pdf", "txt", "md"],
-            help="Upload a PDF, TXT, or MD file to add to the RAG knowledge base.",
             label_visibility="collapsed",
         )
         if uploaded_file is not None:
             os.makedirs("scratch", exist_ok=True)
             temp_path = os.path.abspath(os.path.join("scratch", uploaded_file.name))
-            with open(temp_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
+            with open(temp_path, "wb") as fh:
+                fh.write(uploaded_file.getbuffer())
 
             if st.button("Ingest Document", use_container_width=True):
-                with st.spinner("Ingesting into vector store..."):
+                with st.spinner("Ingesting into vector store…"):
                     try:
-                        ingest_url = f"{API_BASE_URL}/ingest"
-                        with open(temp_path, "rb") as f:
-                            files = {"file": (uploaded_file.name, f, "application/octet-stream")}
-                            resp = requests.post(ingest_url, files=files, timeout=60)
+                        with open(temp_path, "rb") as fh:
+                            resp = requests.post(
+                                f"{API_BASE_URL}/ingest",
+                                files={"file": (uploaded_file.name, fh, "application/octet-stream")},
+                                timeout=60,
+                            )
                         if resp.status_code == 200:
-                            res_data = resp.json()
-                            if res_data.get("status") == "success":
+                            rd = resp.json()
+                            if rd.get("status") == "success":
                                 st.session_state.ingested_files.append({
-                                    "filename": uploaded_file.name,
-                                    "file_id": res_data.get("file_id", "N/A"),
-                                    "chunks_added": res_data.get("chunks_added", 0),
+                                    "filename":     uploaded_file.name,
+                                    "file_id":      rd.get("file_id", "N/A"),
+                                    "chunks_added": rd.get("chunks_added", 0),
                                 })
                                 st.rerun()
                             else:
-                                st.error(f"Ingestion failed: {res_data.get('message')}")
+                                st.error(f"Ingestion failed: {rd.get('message')}")
                         else:
                             st.error(f"Error {resp.status_code}: {resp.text}")
                     except Exception as e:
                         st.error(f"Connection error: {e}")
 
     st.markdown("---")
-
-    # Clear Chat History Button
-    if st.button("✕ Clear Chat History", use_container_width=True):
-        try:
-            delete_url = f"{API_BASE_URL}/history/{st.session_state.session_id}"
-            r = requests.delete(delete_url, timeout=10)
-            if r.status_code not in (200, 204, 404):
-                st.warning(f"Backend clear returned {r.status_code}. Local chat cleared.")
-        except Exception:
-            st.warning("Could not reach backend to clear server-side history. Local chat cleared.")
-        st.session_state.messages = []
-        st.session_state.session_id = str(uuid.uuid4())
-        st.rerun()
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("✕ Clear Chat", use_container_width=True):
+            try:
+                r = requests.delete(f"{API_BASE_URL}/history/{st.session_state.session_id}", timeout=10)
+                if r.status_code not in (200, 204, 404):
+                    st.warning(f"Backend returned {r.status_code}. Local chat cleared.")
+            except Exception:
+                pass
+            st.session_state.messages   = []
+            st.session_state.session_id = str(uuid.uuid4())
+            st.rerun()
+    with col_b:
+        st.download_button(
+            label="⬇ Export",
+            data=build_chat_export(),
+            file_name=f"chat_{st.session_state.session_id[:8]}_{date.today().isoformat()}.md",
+            mime="text/markdown",
+            use_container_width=True,
+            disabled=len(st.session_state.messages) == 0,
+        )
 
     st.markdown("---")
-
-    # Export Chat (.md)
-    export_data = build_chat_export()
-    st.download_button(
-        label="⬇ Export Chat (.md)",
-        data=export_data,
-        file_name=f"chat_{st.session_state.session_id[:8]}_{date.today().isoformat()}.md",
-        mime="text/markdown",
-        use_container_width=True,
-        disabled=len(st.session_state.messages) == 0,
-    )
-
-    st.caption(f"Session: `{st.session_state.session_id[:8]}…`")
+    st.caption(f"Session `{st.session_state.session_id[:8]}…`")
 
 
-# ───────────── MAIN LAYOUT & HEADER ──────────────────────────────────────────
-# Top Header Banner
-st.markdown(
-    """
-    <div class="header-container">
-        <h1 class="main-header-title">◆ Agentic Studio</h1>
-        <div class="main-header-subtitle">Production-Grade Autonomous RAG & Multi-Tool Intelligence</div>
+# ─────────── MAIN HEADER ──────────────────────────────────────────────────────
+st.markdown("""
+    <div class="app-header">
+        <span style="font-size:1.6rem;background:linear-gradient(135deg,#58A6FF,#BC8CFF);-webkit-background-clip:text;-webkit-text-fill-color:transparent">✦</span>
+        <div>
+            <div class="app-header-title">Agentic Studio</div>
+            <div class="app-header-sub">Autonomous RAG &amp; Multi-Tool Intelligence</div>
+        </div>
     </div>
-    """,
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
 
-# Status Pill Bar
-c1, c2, c3 = st.columns([4, 4, 4])
-with c1:
-    st.markdown(f"<div class='status-pill status-pill-active'>📡 Model: <strong>{selected_model}</strong></div>", unsafe_allow_html=True)
-with c2:
-    st.markdown(f"<div class='status-pill status-pill-active'>⚡ Routing: <strong>{'ON' if use_tool_routing else 'OFF'}</strong></div>", unsafe_allow_html=True)
-with c3:
-    st.markdown(f"<div class='status-pill'>🌐 Search: <strong>{'Enabled' if allow_web_search else 'Disabled'}</strong></div>", unsafe_allow_html=True)
+routing_color = "pill-purple" if use_tool_routing else "pill-gray"
+search_color  = "pill-green"  if allow_web_search  else "pill-gray"
+st.markdown(f"""
+    <div class="pill-row">
+        <span class="pill pill-blue">📡 {selected_model.split("/")[-1]}</span>
+        <span class="pill {routing_color}">⚡ Routing {"ON" if use_tool_routing else "OFF"}</span>
+        <span class="pill {search_color}">🌐 Search {"ON" if allow_web_search else "OFF"}</span>
+    </div>
+""", unsafe_allow_html=True)
 
-st.markdown("---")
 
-# ───────────── HERO WELCOME (EMPTY CHAT STATE) ────────────────────────────────
-if len(st.session_state.messages) == 0:
-    col_a, col_b, col_c = st.columns(3)
-    with col_a:
-        st.markdown(
-            """
-            <div class="hero-card">
-                <div class="hero-card-icon">⚡</div>
-                <div class="hero-card-title">Smart Tool Routing</div>
-                <div class="hero-card-desc">Automatically routes your query between RAG vector search, live web search, or direct LLM execution.</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    with col_b:
-        st.markdown(
-            """
-            <div class="hero-card">
-                <div class="hero-card-icon">📚</div>
-                <div class="hero-card-title">RAG Context Engine</div>
-                <div class="hero-card-desc">Upload PDFs, TXT, or Markdown documents in the sidebar to perform grounded research with citations.</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    with col_c:
-        st.markdown(
-            """
-            <div class="hero-card">
-                <div class="hero-card-icon">🌐</div>
-                <div class="hero-card-title">Live Web Search</div>
-                <div class="hero-card-desc">Integrates Tavily web search for real-time information retrieval and structured summary generation.</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+# ─────────── HERO (EMPTY STATE) ───────────────────────────────────────────────
+if not st.session_state.messages:
+    st.markdown("<br>", unsafe_allow_html=True)
+    c1, c2, c3 = st.columns(3)
+    cards = [
+        ("⚡", "Smart Routing",   "Automatically chooses between RAG, web search, or direct LLM."),
+        ("📚", "RAG Engine",      "Upload PDFs, TXT, or Markdown in the sidebar for grounded answers."),
+        ("🌐", "Live Web Search", "Tavily web search for real-time information and summaries."),
+    ]
+    for col, (icon, title, desc) in zip([c1, c2, c3], cards):
+        with col:
+            st.markdown(f"""
+                <div class="hero-card">
+                    <div class="hero-icon">{icon}</div>
+                    <div class="hero-title">{title}</div>
+                    <div class="hero-desc">{desc}</div>
+                </div>
+            """, unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
-# ───────────── CHAT HISTORY RENDER ───────────────────────────────────────────
+
+# ─────────── CHAT HISTORY ─────────────────────────────────────────────────────
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         if message["role"] == "user":
@@ -717,41 +437,40 @@ for message in st.session_state.messages:
         else:
             render_response(message["content"])
 
-# ───────────── CHAT INPUT & EXECUTION ────────────────────────────────────────
-CHAT_URL = f"{API_BASE_URL}/chat"
 
-if prompt := st.chat_input("Ask your agent a question..."):
+# ─────────── CHAT INPUT & EXECUTION ──────────────────────────────────────────
+if prompt := st.chat_input("Ask anything…"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.write(prompt)
 
     payload = {
-        "model_name": selected_model,
-        "model_provider": provider,
-        "system_prompt": SYSTEM_PROMPT,
-        "messages": [prompt],
-        "allow_search": allow_web_search,
+        "model_name":       selected_model,
+        "model_provider":   provider,
+        "system_prompt":    SYSTEM_PROMPT,
+        "messages":         [prompt],
+        "allow_search":     allow_web_search,
         "use_tool_routing": use_tool_routing,
-        "session_id": st.session_state.session_id,
+        "session_id":       st.session_state.session_id,
     }
 
     with st.chat_message("assistant"):
-        spinner_msg = "Routing & Generating Response..." if use_tool_routing else "Processing..."
-        with st.status(spinner_msg, expanded=True) as status:
+        label = "Routing & generating…" if use_tool_routing else "Processing…"
+        with st.status(label, expanded=True) as status:
             try:
-                response = requests.post(CHAT_URL, json=payload, timeout=120)
+                response = requests.post(f"{API_BASE_URL}/chat", json=payload, timeout=120)
                 if response.status_code == 200:
                     data = response.json()
                     if "error" in data:
-                        status.update(label="Error occurred", state="error", expanded=False)
+                        status.update(label="Error", state="error", expanded=False)
                         st.error(data["error"])
                     else:
-                        status.update(label="Complete!", state="complete", expanded=False)
+                        status.update(label="Done", state="complete", expanded=False)
                         st.session_state.messages.append({"role": "assistant", "content": data})
                         st.rerun()
                 else:
                     status.update(label="Server error", state="error", expanded=False)
-                    st.error(f"! Server error {response.status_code}")
+                    st.error(f"Server error {response.status_code}")
             except Exception as e:
                 status.update(label="Connection error", state="error", expanded=False)
-                st.error(f"! Connection error: {e}")
+                st.error(f"Connection error: {e}")
