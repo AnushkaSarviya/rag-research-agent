@@ -76,6 +76,12 @@ def init_db() -> None:
     finally:
         conn.close()
 
+    # Also initialise the users table (auth module).
+    # Imported here to avoid a circular import at module level
+    # (auth imports get_connection from this file).
+    from backend.auth import create_users_table
+    create_users_table()
+
 
 def save_message(session_id: str, role: str, content: str) -> None:
     """Insert a single message row."""

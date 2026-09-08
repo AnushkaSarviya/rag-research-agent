@@ -1,4 +1,4 @@
-﻿# ─────────── IMPORTS ─────────────────────────────────────────────────────────
+# ─────────── IMPORTS ─────────────────────────────────────────────────────────
 import os
 import uuid
 from datetime import date
@@ -8,7 +8,8 @@ import streamlit as st
 
 
 # ─────────── API CONFIG ──────────────────────────────────────────────────────
-API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:9999")
+# Use BACKEND_URL env var for deployment; falls back to local dev default.
+API_BASE_URL = os.getenv("BACKEND_URL", os.getenv("API_BASE_URL", "http://127.0.0.1:9999"))
 
 
 # ─────────── PAGE CONFIG ─────────────────────────────────────────────────────
@@ -179,10 +180,167 @@ hr { border-color: #21262D !important; }
     letter-spacing: 0.08em; color: #6E7681 !important; margin-bottom: 0.6rem;
 }
 
+/* ── Auth screen ─────────────────────────────────────────────── */
+.auth-wrapper {
+    max-width: 420px;
+    margin: 3rem auto 0 auto;
+}
+.auth-logo {
+    text-align: center;
+    margin-bottom: 1.75rem;
+}
+.auth-logo-icon {
+    font-size: 2.8rem;
+    background: linear-gradient(135deg, #58A6FF, #BC8CFF);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    display: block;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+}
+.auth-logo-title {
+    font-size: 1.65rem; font-weight: 700;
+    background: linear-gradient(135deg, #58A6FF, #BC8CFF);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.auth-logo-desc {
+    font-size: 0.84rem; color: #6E7681 !important;
+    margin-top: 0.35rem; line-height: 1.5;
+}
+
+/* ── User info bar in authenticated header ───────────────────── */
+.user-bar {
+    display: flex; align-items: center; justify-content: flex-end;
+    gap: 0.6rem; margin-bottom: 0.5rem;
+    font-size: 0.82rem; color: #6E7681 !important;
+}
+.user-bar-name { color: #C9D1D9 !important; font-weight: 500; }
+
 #MainMenu { visibility: hidden; }
 footer    { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
+
+
+# ─────────── AUTH STATE HELPERS ──────────────────────────────────────────────
+def _auth_headers() -> dict:
+    """Return Authorization header dict for backend API calls."""
+    token = st.session_state.get("token", "")
+    return {"Authorization": f"Bearer {token}"} if token else {}
+
+
+def _is_authenticated() -> bool:
+    return bool(st.session_state.get("token"))
+
+
+def _call_register(name: str, email: str, password: str) -> tuple[bool, str]:
+    """Call POST /auth/register. Returns (success, message)."""
+    try:
+        resp = requests.post(
+            f"{API_BASE_URL}/auth/register",
+            json={"name": name, "email": email, "password": password},
+            timeout=15,
+        )
+        data = resp.json()
+        if resp.status_code == 201:
+            st.session_state.token      = data["access_token"]
+            st.session_state.user_name  = data["name"]
+            st.session_state.user_email = data["email"]
+            st.session_state.user_id    = data["user_id"]
+            return True, ""
+        return False, data.get("detail", "Registration failed.")
+    except requests.exceptions.ConnectionError:
+        return False, "Cannot reach the backend. Is the server running?"
+    except Exception as e:
+        return False, f"Unexpected error: {e}"
+
+
+def _call_login(email: str, password: str) -> tuple[bool, str]:
+    """Call POST /auth/login. Returns (success, message)."""
+    try:
+        resp = requests.post(
+            f"{API_BASE_URL}/auth/login",
+            json={"email": email, "password": password},
+            timeout=15,
+        )
+        data = resp.json()
+        if resp.status_code == 200:
+            st.session_state.token      = data["access_token"]
+            st.session_state.user_name  = data["name"]
+            st.session_state.user_email = data["email"]
+            st.session_state.user_id    = data["user_id"]
+            return True, ""
+        return False, data.get("detail", "Login failed.")
+    except requests.exceptions.ConnectionError:
+        return False, "Cannot reach the backend. Is the server running?"
+    except Exception as e:
+        return False, f"Unexpected error: {e}"
+
+
+def _logout():
+    """Clear all auth and chat session state."""
+    for key in ["token", "user_name", "user_email", "user_id",
+                "messages", "session_id", "ingested_files"]:
+        st.session_state.pop(key, None)
+
+
+# ─────────── LOGIN / SIGNUP SCREEN ───────────────────────────────────────────
+def render_auth_screen():
+    """Render the unauthenticated login/signup screen."""
+    # Centre a narrow card
+    _, col, _ = st.columns([1, 2, 1])
+    with col:
+        st.markdown("""
+            <div class="auth-logo">
+                <span class="auth-logo-icon">✦</span>
+                <div class="auth-logo-title">Agentic Studio</div>
+                <div class="auth-logo-desc">
+                    Autonomous RAG &amp; Multi-Tool Research Assistant.<br>
+                    Upload documents, search the web, and get structured summaries — all in one place.
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        login_tab, signup_tab = st.tabs(["Log In", "Sign Up"])
+
+        # ── Log In ──────────────────────────────────────────────────────────
+        with login_tab:
+            with st.form("login_form", clear_on_submit=False):
+                email    = st.text_input("Email", placeholder="you@example.com", key="li_email")
+                password = st.text_input("Password", type="password", placeholder="••••••••", key="li_pass")
+                submitted = st.form_submit_button("Log In", use_container_width=True)
+
+            if submitted:
+                if not email or not password:
+                    st.error("Please enter your email and password.")
+                else:
+                    with st.spinner("Logging in…"):
+                        ok, msg = _call_login(email, password)
+                    if ok:
+                        st.rerun()
+                    else:
+                        st.error(msg)
+
+        # ── Sign Up ─────────────────────────────────────────────────────────
+        with signup_tab:
+            with st.form("signup_form", clear_on_submit=False):
+                name     = st.text_input("Full Name", placeholder="Your name", key="su_name")
+                email    = st.text_input("Email", placeholder="you@example.com", key="su_email")
+                password = st.text_input("Password", type="password",
+                                         placeholder="Min. 8 characters", key="su_pass")
+                submitted = st.form_submit_button("Create Account", use_container_width=True)
+
+            if submitted:
+                if not name or not email or not password:
+                    st.error("All fields are required.")
+                elif len(password) < 8:
+                    st.error("Password must be at least 8 characters.")
+                else:
+                    with st.spinner("Creating your account…"):
+                        ok, msg = _call_register(name, email, password)
+                    if ok:
+                        st.rerun()
+                    else:
+                        st.error(msg)
 
 
 # ─────────── TOOL BADGE HELPER ────────────────────────────────────────────────
@@ -249,11 +407,20 @@ def render_response(data: dict):
         )
 
 
-# ─────────── SESSION STATE ────────────────────────────────────────────────────
+# ─────────── GATE: SHOW AUTH SCREEN IF NOT LOGGED IN ─────────────────────────
+if not _is_authenticated():
+    render_auth_screen()
+    st.stop()   # Halt execution — nothing below renders for unauthenticated users
+
+
+# ─────────── SESSION STATE (authenticated users only) ─────────────────────────
+# session_id is prefixed with the user's ID to ensure chat history isolation.
+# Each user only ever sees their own messages from the DB.
 if "messages"       not in st.session_state:
     st.session_state.messages       = []
 if "session_id"     not in st.session_state:
-    st.session_state.session_id     = str(uuid.uuid4())
+    uid_prefix = st.session_state.get("user_id", "")[:8]
+    st.session_state.session_id     = f"{uid_prefix}_{uuid.uuid4()}"
 if "ingested_files" not in st.session_state:
     st.session_state.ingested_files = []
 
@@ -286,6 +453,20 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
 
+    # ── Logged-in user info + logout ─────────────────────────────────────────
+    user_name  = st.session_state.get("user_name", "")
+    user_email = st.session_state.get("user_email", "")
+    st.markdown(
+        f'<div style="font-size:0.80rem;color:#6E7681;margin-bottom:0.25rem;">Signed in as</div>'
+        f'<div style="font-size:0.88rem;font-weight:600;color:#C9D1D9;margin-bottom:0.1rem;">{user_name}</div>'
+        f'<div style="font-size:0.76rem;color:#6E7681;margin-bottom:0.75rem;">{user_email}</div>',
+        unsafe_allow_html=True,
+    )
+    if st.button("← Log Out", use_container_width=True):
+        _logout()
+        st.rerun()
+
+    st.markdown("---")
     st.markdown('<div class="sb-section">📡 Model</div>', unsafe_allow_html=True)
     provider = st.radio("Provider", ("Groq", "OpenRouter"), horizontal=True, label_visibility="collapsed")
     MODEL_MAP = {
@@ -370,7 +551,8 @@ with st.sidebar:
             except Exception:
                 pass
             st.session_state.messages   = []
-            st.session_state.session_id = str(uuid.uuid4())
+            uid_prefix = st.session_state.get("user_id", "")[:8]
+            st.session_state.session_id = f"{uid_prefix}_{uuid.uuid4()}"
             st.rerun()
     with col_b:
         st.download_button(

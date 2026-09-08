@@ -25,8 +25,9 @@ from uuid import uuid4
 
 from pydantic import BaseModel
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Header
 from contextlib import asynccontextmanager
+import jwt
 
 from backend.ai_agent import (
     get_response_from_ai_agent,
@@ -36,6 +37,10 @@ from backend.ai_agent import (
 from backend.tools.summarizer import summarize_with_evidence
 from backend.tool_router import decide_tool, get_tool_descriptions
 from backend.db import init_db, save_message, get_history, get_session_messages_as_list, delete_history
+from backend.auth import (
+    UserRegister, UserLogin, TokenResponse, UserInfo,
+    create_user, authenticate_user, create_access_token, decode_access_token,
+)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -148,6 +153,117 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Authentication endpoints
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.post(
+    "/auth/register",
+    status_code=201,
+    response_model=TokenResponse,
+    summary="Register a new user account",
+    tags=["Authentication"],
+)
+def register_endpoint(body: UserRegister):
+    """
+    Create a new user account.
+
+    - Hashes the password with bcrypt before storing.
+    - Returns a JWT access token on success.
+    - Returns 409 if the email is already registered.
+    - Returns 400 for validation errors (short password, invalid email, etc.).
+    """
+    try:
+        user = create_user(name=body.name, email=body.email, password=body.password)
+    except ValueError as e:
+        # Duplicate email or validation error
+        status = 409 if "already exists" in str(e) else 400
+        raise HTTPException(status_code=status, detail=str(e))
+    except Exception as e:
+        logging.error("Registration error: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Registration failed. Please try again.")
+
+    token = create_access_token(
+        user_id=user["user_id"],
+        email=user["email"],
+        name=user["name"],
+    )
+    return TokenResponse(
+        access_token=token,
+        user_id=user["user_id"],
+        name=user["name"],
+        email=user["email"],
+    )
+
+
+@app.post(
+    "/auth/login",
+    response_model=TokenResponse,
+    summary="Log in with email and password",
+    tags=["Authentication"],
+)
+def login_endpoint(body: UserLogin):
+    """
+    Authenticate with email and password.
+
+    - Returns a JWT access token on success.
+    - Returns 401 for invalid credentials (same message for wrong email or
+      wrong password to prevent user enumeration).
+    """
+    user = authenticate_user(email=body.email, password=body.password)
+    if user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password.",
+        )
+
+    token = create_access_token(
+        user_id=user["user_id"],
+        email=user["email"],
+        name=user["name"],
+    )
+    return TokenResponse(
+        access_token=token,
+        user_id=user["user_id"],
+        name=user["name"],
+        email=user["email"],
+    )
+
+
+@app.get(
+    "/auth/me",
+    response_model=UserInfo,
+    summary="Get current authenticated user info",
+    tags=["Authentication"],
+)
+def me_endpoint(authorization: Optional[str] = Header(default=None)):
+    """
+    Return the authenticated user's profile.
+
+    Requires a valid Bearer token in the Authorization header.
+    Returns 401 if the token is missing, invalid, or expired.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail="Authorization header missing or malformed. Expected: 'Bearer <token>'",
+        )
+
+    token = authorization.removeprefix("Bearer ").strip()
+    try:
+        payload = decode_access_token(token)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired. Please log in again.")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token. Please log in again.")
+
+    return UserInfo(
+        user_id=payload["sub"],
+        name=payload["name"],
+        email=payload["email"],
+    )
 
 
 # ── /chat ─────────────────────────────────────────────────────────────────────

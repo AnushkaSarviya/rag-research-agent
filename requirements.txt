@@ -1,4 +1,4 @@
-﻿absl-py==1.4.0
+absl-py==1.4.0
 aio-pika==8.2.3
 aiofiles==24.1.0
 aiogram==2.15
@@ -248,5 +248,6 @@ wsproto==1.2.0
 xxhash==3.7.0
 yarl==1.20.1
 zstandard==0.25.0
-
 python-multipart
+bcrypt>=4.0.0
+PyJWT>=2.8.0

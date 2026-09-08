@@ -63,10 +63,18 @@ pip install fastapi uvicorn streamlit langchain-groq langchain-openai langchain-
 
 2. Edit `.env` and add your API keys:
    ```env
+   # LLM Keys
    GROQ_API_KEY=your_actual_groq_key
    OPEN_ROUTER_API_KEY=your_actual_openrouter_key
    TAVILY_API_KEY=your_actual_tavily_key  # Optional
+   
+   # Authentication Secrets
+   SECRET_KEY=generate_a_secure_random_string
+   JWT_ALGORITHM=HS256
+   JWT_EXPIRE_HOURS=24
+   BACKEND_URL=http://127.0.0.1:9999
    ```
+   > **Note:** Generate a secure `SECRET_KEY` using `python -c "import secrets; print(secrets.token_hex(32))"`
 
 ### 5. Run the Application
 
@@ -84,11 +92,19 @@ streamlit run frontend.py
 
 ## API Endpoints
 
+### Authentication
+- `POST /auth/register` - Register a new user account
+- `POST /auth/login` - Authenticate and get JWT token
+- `GET /auth/me` - Get current authenticated user profile
+
+### Agent & Chat (Requires Authentication via Streamlit UI)
 - `POST /chat` - Chat with the agent
 - `GET /history/{session_id}` - Get chat history
+- `POST /ingest` - Ingest documents into vector store
+
+### System
 - `GET /models` - List available models
 - `GET /health` - Health check
-- `POST /ingest` - Ingest documents into vector store
 
 ## Security Best Practices
 
