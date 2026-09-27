@@ -26,6 +26,7 @@ from uuid import uuid4
 from pydantic import BaseModel
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, UploadFile, File, Header
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import jwt
 
@@ -91,8 +92,7 @@ class DecideRequest(BaseModel):
 # Allowed models & logging
 # ─────────────────────────────────────────────────────────────────────────────
 ALLOWED_MODEL_NAMES = [
-    "mixtral-8x7b-32768",
-    "llama-3.3-70b-versatile",
+    "openai/gpt-oss-120b",
     "meta-llama/llama-3.1-70b-instruct"
 ]
 
@@ -151,6 +151,30 @@ app = FastAPI(
     ),
     version="1.3",
     lifespan=lifespan,
+)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CORS Middleware
+#
+# WHY CORS?
+# ─────────
+# In deployment the Streamlit frontend and the FastAPI backend may be served
+# from different origins (different ports, subdomains, or domains). Without
+# CORS headers the browser will reject all cross-origin requests.
+#
+# The CORS_ORIGINS env var accepts a comma-separated list of allowed origins.
+# Default allows common local dev origins. In production, set it to your
+# actual frontend URL(s).
+# ─────────────────────────────────────────────────────────────────────────────
+_cors_origins_raw = os.getenv("CORS_ORIGINS", "http://localhost:8501,http://127.0.0.1:8501,http://localhost:9999,http://127.0.0.1:9999")
+CORS_ORIGINS = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -627,4 +651,4 @@ async def ingest_document_endpoint(file: UploadFile = File(...)):
 # Step 3: Run app & Explore Swagger UI Docs
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=9999)
+    uvicorn.run(app, host="0.0.0.0", port=9999)

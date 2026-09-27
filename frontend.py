@@ -24,199 +24,414 @@ st.set_page_config(
 # ─────────── CUSTOM CSS ───────────────────────────────────────────────────────
 st.markdown("""
 <style>
+/* ── Typography ──────────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 html, body, [class*="st-"] {
-    font-family: 'Inter', -apple-system, sans-serif !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
 }
-.stApp { background: #0D1117 !important; }
+
+/* ── Global background ───────────────────────────────────────── */
+.stApp { background: #0F1318 !important; }
+
+/* ── Main container ──────────────────────────────────────────── */
 .block-container {
-    padding-top: 1.5rem !important;
-    padding-bottom: 5rem !important;
-    max-width: 56rem !important;
+    padding-top: 1.25rem !important;
+    padding-bottom: 4rem !important;
+    max-width: 52rem !important;
 }
+
+/* ── Base text ───────────────────────────────────────────────── */
 p, span, li, td, th, label, div { color: #C9D1D9 !important; }
 
+/* ── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2D333B; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #444C56; }
+
+/* ── Sidebar ─────────────────────────────────────────────────── */
 [data-testid="stSidebar"] {
     background: #161B22 !important;
-    border-right: 1px solid #21262D !important;
+    border-right: 1px solid rgba(48, 54, 61, 0.6) !important;
 }
 [data-testid="stSidebar"] * { color: #C9D1D9 !important; }
+[data-testid="stSidebar"] .stMarkdown hr {
+    margin: 0.6rem 0 !important;
+    border-color: rgba(48, 54, 61, 0.5) !important;
+}
 
+/* ── App header ──────────────────────────────────────────────── */
 .app-header {
-    display: flex; align-items: center; gap: 0.75rem;
-    padding: 0.5rem 0 1rem 0;
-    border-bottom: 1px solid #21262D;
-    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.15rem 0 0.7rem 0;
+    border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+    margin-bottom: 0.75rem;
+}
+.app-header-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+    background: linear-gradient(135deg, #4D94E6 0%, #8B6DC4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 .app-header-title {
-    font-size: 1.5rem; font-weight: 700;
-    background: linear-gradient(135deg, #58A6FF 0%, #BC8CFF 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    margin: 0; line-height: 1;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #E6EDF3 !important;
+    margin: 0;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
 }
-.app-header-sub { font-size: 0.82rem; color: #6E7681 !important; margin-top: 0.15rem; }
+.app-header-sub {
+    font-size: 0.74rem;
+    color: #6E7681 !important;
+    margin-top: 0.05rem;
+    font-weight: 400;
+}
 
-.pill-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+/* ── Status pills ────────────────────────────────────────────── */
+.pill-row {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.85rem;
+}
 .pill {
-    display: inline-flex; align-items: center; gap: 0.35rem;
-    padding: 0.22rem 0.65rem; border-radius: 20px;
-    font-size: 0.76rem; font-weight: 500;
-    background: #161B22; border: 1px solid #21262D; color: #8B949E !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 5px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    background: rgba(22, 27, 34, 0.8);
+    border: 1px solid rgba(48, 54, 61, 0.6);
+    color: #8B949E !important;
+    letter-spacing: 0.01em;
 }
-.pill-blue   { border-color: #1F6FEB44; color: #58A6FF !important; }
-.pill-purple { border-color: #BC8CFF44; color: #BC8CFF !important; }
-.pill-green  { border-color: #3FB95044; color: #3FB950 !important; }
-.pill-gray   { border-color: #30363D;   color: #6E7681 !important; }
+.pill-blue   { border-color: rgba(31, 111, 235, 0.2); color: #4D94E6 !important; }
+.pill-purple { border-color: rgba(139, 109, 196, 0.2); color: #8B6DC4 !important; }
+.pill-green  { border-color: rgba(63, 185, 80, 0.2);  color: #3FB950 !important; }
+.pill-gray   { border-color: rgba(48, 54, 61, 0.6);   color: #484F58 !important; }
 
+/* ── Chat messages ───────────────────────────────────────────── */
 .stChatMessage {
     background: #161B22 !important;
-    border: 1px solid #21262D !important;
-    border-radius: 12px !important;
-    padding: 1.1rem 1.3rem !important;
-    margin-bottom: 0.75rem !important;
+    border: 1px solid rgba(48, 54, 61, 0.5) !important;
+    border-radius: 8px !important;
+    padding: 0.85rem 1.1rem !important;
+    margin-bottom: 0.5rem !important;
     box-shadow: none !important;
-    animation: fadeUp 0.2s ease;
+    animation: fadeUp 0.18s ease-out;
 }
-.stChatMessage:has([data-testid="chatAvatarIcon-user"])      { border-left: 2px solid #1F6FEB !important; }
-.stChatMessage:has([data-testid="chatAvatarIcon-assistant"]) { border-left: 2px solid #BC8CFF !important; }
-.stChatMessage p, .stChatMessage span, .stChatMessage li {
-    color: #E6EDF3 !important; font-size: 0.91rem !important; line-height: 1.7 !important;
+.stChatMessage:has([data-testid="chatAvatarIcon-user"]) {
+    border-left: 2px solid rgba(77, 148, 230, 0.6) !important;
+}
+.stChatMessage:has([data-testid="chatAvatarIcon-assistant"]) {
+    border-left: 2px solid rgba(139, 109, 196, 0.6) !important;
+}
+.stChatMessage p,
+.stChatMessage span,
+.stChatMessage li {
+    color: #E6EDF3 !important;
+    font-size: 0.87rem !important;
+    line-height: 1.65 !important;
 }
 .stChatMessage strong { color: #F0F6FC !important; }
 .stChatMessage code {
-    background: #0D1117 !important; color: #79C0FF !important;
-    padding: 0.1em 0.35em !important; border-radius: 4px !important;
-    font-family: 'JetBrains Mono', monospace !important; font-size: 0.83em !important;
+    background: #0F1318 !important;
+    color: #79C0FF !important;
+    padding: 0.1em 0.3em !important;
+    border-radius: 4px !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.82em !important;
+    border: 1px solid rgba(48, 54, 61, 0.5) !important;
 }
 @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(6px); }
+    from { opacity: 0; transform: translateY(3px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Tool badges ─────────────────────────────────────────────── */
 .tool-badge {
-    display: inline-flex; align-items: center; gap: 0.4rem;
-    padding: 0.25rem 0.7rem; border-radius: 20px;
-    font-size: 0.76rem; font-weight: 600;
-    margin-bottom: 0.5rem; letter-spacing: 0.01em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 5px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    letter-spacing: 0.01em;
 }
-.tb-research { background:#1F6FEB15; color:#58A6FF !important; border:1px solid #1F6FEB44; }
-.tb-web      { background:#F7857515; color:#F78575 !important; border:1px solid #F7857544; }
-.tb-notool   { background:#BC8CFF15; color:#BC8CFF !important; border:1px solid #BC8CFF44; }
+.tb-research { background: rgba(31, 111, 235, 0.06); color: #4D94E6 !important; border: 1px solid rgba(31, 111, 235, 0.15); }
+.tb-web      { background: rgba(247, 133, 117, 0.06); color: #E07B6C !important; border: 1px solid rgba(247, 133, 117, 0.15); }
+.tb-notool   { background: rgba(139, 109, 196, 0.06); color: #8B6DC4 !important; border: 1px solid rgba(139, 109, 196, 0.15); }
 .tool-hint {
-    font-size: 0.77rem; color: #6E7681 !important;
-    font-family: 'JetBrains Mono', monospace !important; margin-bottom: 0.75rem;
+    font-size: 0.72rem;
+    color: #6E7681 !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    margin-bottom: 0.5rem;
+    padding-left: 0.1rem;
 }
 
+/* ── Hero cards (empty state) ────────────────────────────────── */
 .hero-card {
-    background: #161B22; border: 1px solid #21262D; border-radius: 12px;
-    padding: 1.2rem; height: 100%;
-    transition: border-color 0.2s ease, transform 0.2s ease;
+    background: #161B22;
+    border: 1px solid rgba(48, 54, 61, 0.5);
+    border-radius: 8px;
+    padding: 1rem;
+    height: 100%;
+    transition: border-color 0.15s ease, background 0.15s ease;
 }
-.hero-card:hover { border-color: #388BFD55; transform: translateY(-2px); }
-.hero-icon  { font-size: 1.4rem; margin-bottom: 0.5rem; }
-.hero-title { font-weight: 700; color: #E6EDF3 !important; font-size: 0.95rem; margin-bottom: 0.3rem; }
-.hero-desc  { color: #8B949E !important; font-size: 0.83rem; line-height: 1.55; }
+.hero-card:hover {
+    border-color: rgba(48, 54, 61, 0.9);
+    background: #1A2028;
+}
+.hero-icon  { font-size: 1.15rem; margin-bottom: 0.4rem; }
+.hero-title { font-weight: 600; color: #E6EDF3 !important; font-size: 0.85rem; margin-bottom: 0.2rem; }
+.hero-desc  { color: #8B949E !important; font-size: 0.78rem; line-height: 1.5; }
 
+/* ── Chat input ──────────────────────────────────────────────── */
 .stChatInput > div {
-    border-radius: 12px !important; border: 1px solid #30363D !important;
-    background: #161B22 !important; transition: border-color 0.2s ease !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(48, 54, 61, 0.6) !important;
+    background: #161B22 !important;
+    transition: border-color 0.15s ease !important;
 }
-.stChatInput > div:focus-within { border-color: #388BFD !important; box-shadow: 0 0 0 3px #388BFD18 !important; }
-.stChatInput textarea             { color: #E6EDF3 !important; }
-.stChatInput textarea::placeholder{ color: #484F58 !important; }
+.stChatInput > div:focus-within {
+    border-color: rgba(77, 148, 230, 0.5) !important;
+    box-shadow: none !important;
+}
+.stChatInput textarea              { color: #E6EDF3 !important; font-size: 0.86rem !important; }
+.stChatInput textarea::placeholder { color: #484F58 !important; }
 
+/* ── Buttons ─────────────────────────────────────────────────── */
 .stButton > button {
-    background: #21262D !important; color: #C9D1D9 !important;
-    border: 1px solid #30363D !important; border-radius: 8px !important;
-    font-weight: 500 !important; font-size: 0.84rem !important;
-    transition: all 0.15s ease !important;
+    background: #21262D !important;
+    color: #C9D1D9 !important;
+    border: 1px solid rgba(48, 54, 61, 0.7) !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+    font-size: 0.8rem !important;
+    transition: all 0.12s ease !important;
+    padding: 0.3rem 0.65rem !important;
 }
-.stButton > button:hover { background: #30363D !important; border-color: #388BFD66 !important; color: #E6EDF3 !important; }
+.stButton > button:hover {
+    background: #2D333B !important;
+    border-color: #484F58 !important;
+    color: #E6EDF3 !important;
+}
 
+/* ── Download button ─────────────────────────────────────────── */
 div[data-testid="stDownloadButton"] > button {
-    background: #21262D !important; color: #C9D1D9 !important;
-    border: 1px solid #30363D !important; border-radius: 8px !important;
-    font-size: 0.84rem !important; font-weight: 500 !important;
-    transition: all 0.15s ease !important;
+    background: #21262D !important;
+    color: #C9D1D9 !important;
+    border: 1px solid rgba(48, 54, 61, 0.7) !important;
+    border-radius: 6px !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    transition: all 0.12s ease !important;
 }
-div[data-testid="stDownloadButton"] > button:hover { border-color: #388BFD66 !important; background: #30363D !important; }
+div[data-testid="stDownloadButton"] > button:hover {
+    border-color: #484F58 !important;
+    background: #2D333B !important;
+}
 
+/* ── Expanders ───────────────────────────────────────────────── */
 div[data-testid="stExpander"] {
-    background: #161B22 !important; border: 1px solid #21262D !important;
-    border-radius: 10px !important; margin-bottom: 0.6rem !important;
+    background: #161B22 !important;
+    border: 1px solid rgba(48, 54, 61, 0.5) !important;
+    border-radius: 6px !important;
+    margin-bottom: 0.4rem !important;
 }
-div[data-testid="stExpander"] summary { font-weight: 600 !important; color: #C9D1D9 !important; }
-div[data-testid="stExpander"] summary:hover { color: #58A6FF !important; }
-div[data-testid="stExpander"] p, div[data-testid="stExpander"] li { color: #C9D1D9 !important; }
+div[data-testid="stExpander"] summary {
+    font-weight: 600 !important;
+    color: #C9D1D9 !important;
+    font-size: 0.84rem !important;
+}
+div[data-testid="stExpander"] summary:hover { color: #E6EDF3 !important; }
+div[data-testid="stExpander"] p,
+div[data-testid="stExpander"] li { color: #C9D1D9 !important; }
 
+/* ── File uploader ───────────────────────────────────────────── */
 div[data-testid="stFileUploader"] {
-    border: 2px dashed #21262D !important; border-radius: 10px !important;
-    background: #0D1117 !important; transition: border-color 0.2s ease !important;
+    border: 1px dashed rgba(48, 54, 61, 0.7) !important;
+    border-radius: 6px !important;
+    background: #0F1318 !important;
+    transition: border-color 0.15s ease !important;
 }
-div[data-testid="stFileUploader"]:hover { border-color: #388BFD55 !important; }
+div[data-testid="stFileUploader"]:hover { border-color: #484F58 !important; }
 
+/* ── Select boxes ────────────────────────────────────────────── */
 div[data-baseweb="select"] > div {
-    background: #161B22 !important; border-color: #30363D !important;
-    border-radius: 8px !important; color: #C9D1D9 !important;
+    background: #161B22 !important;
+    border-color: rgba(48, 54, 61, 0.6) !important;
+    border-radius: 6px !important;
+    color: #C9D1D9 !important;
 }
-div[data-baseweb="select"] > div:hover { border-color: #388BFD55 !important; }
-div[data-baseweb="popover"]            { background: #161B22 !important; border: 1px solid #30363D !important; }
+div[data-baseweb="select"] > div:hover { border-color: #484F58 !important; }
+div[data-baseweb="popover"] {
+    background: #161B22 !important;
+    border: 1px solid rgba(48, 54, 61, 0.6) !important;
+    border-radius: 6px !important;
+}
 
-hr { border-color: #21262D !important; }
-.stCaption, [data-testid="stCaptionContainer"] { color: #6E7681 !important; }
-.stMarkdown a { color: #58A6FF !important; text-decoration: none; }
+/* ── Toggles ─────────────────────────────────────────────────── */
+div[data-testid="stToggle"] label span {
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+}
+
+/* ── Radio (horizontal provider selector) ────────────────────── */
+div[role="radiogroup"] label {
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+}
+
+/* ── Tabs (auth screen) ──────────────────────────────────────── */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 0;
+    background: #161B22;
+    border-radius: 6px;
+    padding: 3px;
+    border: 1px solid rgba(48, 54, 61, 0.5);
+}
+.stTabs [data-baseweb="tab"] {
+    border-radius: 5px !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    color: #8B949E !important;
+    padding: 0.35rem 0.9rem !important;
+    background: transparent !important;
+    border: none !important;
+}
+.stTabs [aria-selected="true"] {
+    background: #21262D !important;
+    color: #E6EDF3 !important;
+}
+.stTabs [data-baseweb="tab-highlight"] { display: none !important; }
+.stTabs [data-baseweb="tab-border"] { display: none !important; }
+
+/* ── Text inputs (auth forms) ────────────────────────────────── */
+.stTextInput > div > div {
+    background: #0F1318 !important;
+    border-color: rgba(48, 54, 61, 0.6) !important;
+    border-radius: 6px !important;
+}
+.stTextInput > div > div:focus-within {
+    border-color: rgba(77, 148, 230, 0.5) !important;
+    box-shadow: none !important;
+}
+.stTextInput input {
+    color: #E6EDF3 !important;
+    font-size: 0.85rem !important;
+}
+.stTextInput input::placeholder { color: #484F58 !important; }
+.stTextInput label {
+    font-size: 0.78rem !important;
+    font-weight: 500 !important;
+    color: #8B949E !important;
+}
+
+/* ── Form submit button ──────────────────────────────────────── */
+.stFormSubmitButton > button {
+    background: linear-gradient(135deg, #2563C4 0%, #6E40C9 100%) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    font-size: 0.84rem !important;
+    padding: 0.45rem 0.9rem !important;
+    transition: opacity 0.12s ease !important;
+}
+.stFormSubmitButton > button:hover { opacity: 0.88 !important; }
+
+/* ── Status widget ───────────────────────────────────────────── */
+div[data-testid="stStatusWidget"] {
+    background: #161B22 !important;
+    border: 1px solid rgba(48, 54, 61, 0.5) !important;
+    border-radius: 6px !important;
+}
+
+/* ── Misc ────────────────────────────────────────────────────── */
+hr { border-color: rgba(48, 54, 61, 0.5) !important; }
+.stCaption, [data-testid="stCaptionContainer"] { color: #484F58 !important; font-size: 0.72rem !important; }
+.stMarkdown a { color: #4D94E6 !important; text-decoration: none; }
 .stMarkdown a:hover { text-decoration: underline; }
 
+/* ── Sidebar branding ────────────────────────────────────────── */
 .sb-brand-title {
-    font-size: 1.15rem; font-weight: 700;
-    background: linear-gradient(135deg, #58A6FF, #BC8CFF);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    margin: 0 0 0.15rem 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #E6EDF3 !important;
+    margin: 0 0 0.05rem 0;
+    letter-spacing: -0.01em;
 }
-.sb-brand-sub { font-size: 0.76rem; color: #6E7681 !important; }
+.sb-brand-sub {
+    font-size: 0.7rem;
+    color: #6E7681 !important;
+    font-weight: 400;
+}
 .sb-section {
-    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.08em; color: #6E7681 !important; margin-bottom: 0.6rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #484F58 !important;
+    margin-bottom: 0.35rem;
 }
 
 /* ── Auth screen ─────────────────────────────────────────────── */
 .auth-wrapper {
-    max-width: 420px;
-    margin: 3rem auto 0 auto;
+    max-width: 400px;
+    margin: 2.5rem auto 0 auto;
 }
 .auth-logo {
     text-align: center;
-    margin-bottom: 1.75rem;
+    margin-bottom: 1.25rem;
 }
 .auth-logo-icon {
-    font-size: 2.8rem;
-    background: linear-gradient(135deg, #58A6FF, #BC8CFF);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    font-size: 1.8rem;
+    background: linear-gradient(135deg, #4D94E6, #8B6DC4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
     display: block;
     line-height: 1;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.35rem;
 }
 .auth-logo-title {
-    font-size: 1.65rem; font-weight: 700;
-    background: linear-gradient(135deg, #58A6FF, #BC8CFF);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #E6EDF3 !important;
+    letter-spacing: -0.01em;
 }
 .auth-logo-desc {
-    font-size: 0.84rem; color: #6E7681 !important;
-    margin-top: 0.35rem; line-height: 1.5;
+    font-size: 0.78rem;
+    color: #6E7681 !important;
+    margin-top: 0.25rem;
+    line-height: 1.5;
 }
 
-/* ── User info bar in authenticated header ───────────────────── */
+/* ── User info bar ───────────────────────────────────────────── */
 .user-bar {
-    display: flex; align-items: center; justify-content: flex-end;
-    gap: 0.6rem; margin-bottom: 0.5rem;
-    font-size: 0.82rem; color: #6E7681 !important;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+    font-size: 0.8rem;
+    color: #6E7681 !important;
 }
 .user-bar-name { color: #C9D1D9 !important; font-weight: 500; }
 
+/* ── Hide Streamlit chrome ───────────────────────────────────── */
 #MainMenu { visibility: hidden; }
 footer    { visibility: hidden; }
+header    { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -286,7 +501,6 @@ def _logout():
 # ─────────── LOGIN / SIGNUP SCREEN ───────────────────────────────────────────
 def render_auth_screen():
     """Render the unauthenticated login/signup screen."""
-    # Centre a narrow card
     _, col, _ = st.columns([1, 2, 1])
     with col:
         st.markdown("""
@@ -294,8 +508,8 @@ def render_auth_screen():
                 <span class="auth-logo-icon">✦</span>
                 <div class="auth-logo-title">Agentic Studio</div>
                 <div class="auth-logo-desc">
-                    Autonomous RAG &amp; Multi-Tool Research Assistant.<br>
-                    Upload documents, search the web, and get structured summaries — all in one place.
+                    RAG &amp; Multi-Tool Research Assistant.<br>
+                    Upload documents, search the web, and get structured answers.
                 </div>
             </div>
         """, unsafe_allow_html=True)
@@ -447,7 +661,7 @@ def build_chat_export() -> str:
 # ─────────── SIDEBAR ──────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
-        <div style="padding:0.5rem 0 1rem 0">
+        <div style="padding:0.4rem 0 0.75rem 0">
             <div class="sb-brand-title">✦ Agentic Studio</div>
             <div class="sb-brand-sub">RAG · Web Search · Memory</div>
         </div>
@@ -457,26 +671,26 @@ with st.sidebar:
     user_name  = st.session_state.get("user_name", "")
     user_email = st.session_state.get("user_email", "")
     st.markdown(
-        f'<div style="font-size:0.80rem;color:#6E7681;margin-bottom:0.25rem;">Signed in as</div>'
-        f'<div style="font-size:0.88rem;font-weight:600;color:#C9D1D9;margin-bottom:0.1rem;">{user_name}</div>'
-        f'<div style="font-size:0.76rem;color:#6E7681;margin-bottom:0.75rem;">{user_email}</div>',
+        f'<div style="font-size:0.78rem;color:#484F58 !important;margin-bottom:0.15rem;">Signed in as</div>'
+        f'<div style="font-size:0.85rem;font-weight:600;color:#C9D1D9 !important;margin-bottom:0.05rem;">{user_name}</div>'
+        f'<div style="font-size:0.73rem;color:#6E7681 !important;margin-bottom:0.6rem;">{user_email}</div>',
         unsafe_allow_html=True,
     )
-    if st.button("← Log Out", use_container_width=True):
+    if st.button("Log Out", use_container_width=True):
         _logout()
         st.rerun()
 
     st.markdown("---")
-    st.markdown('<div class="sb-section">📡 Model</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sb-section">Model</div>', unsafe_allow_html=True)
     provider = st.radio("Provider", ("Groq", "OpenRouter"), horizontal=True, label_visibility="collapsed")
     MODEL_MAP = {
-        "Groq":       ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"],
+        "Groq":       ["openai/gpt-oss-120b"],
         "OpenRouter": ["meta-llama/llama-3.1-70b-instruct"],
     }
     selected_model = st.selectbox("Model", MODEL_MAP[provider], label_visibility="collapsed")
 
     st.markdown("---")
-    st.markdown('<div class="sb-section">⚡ Engine</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sb-section">Engine</div>', unsafe_allow_html=True)
     allow_web_search = st.toggle("Web Search (Tavily)", value=True)
     use_tool_routing = st.toggle("Smart Tool Routing",  value=True)
 
@@ -571,10 +785,10 @@ with st.sidebar:
 # ─────────── MAIN HEADER ──────────────────────────────────────────────────────
 st.markdown("""
     <div class="app-header">
-        <span style="font-size:1.6rem;background:linear-gradient(135deg,#58A6FF,#BC8CFF);-webkit-background-clip:text;-webkit-text-fill-color:transparent">✦</span>
+        <span class="app-header-icon">✦</span>
         <div>
             <div class="app-header-title">Agentic Studio</div>
-            <div class="app-header-sub">Autonomous RAG &amp; Multi-Tool Intelligence</div>
+            <div class="app-header-sub">RAG &amp; Multi-Tool Research Assistant</div>
         </div>
     </div>
 """, unsafe_allow_html=True)
@@ -595,9 +809,9 @@ if not st.session_state.messages:
     st.markdown("<br>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     cards = [
-        ("⚡", "Smart Routing",   "Automatically chooses between RAG, web search, or direct LLM."),
-        ("📚", "RAG Engine",      "Upload PDFs, TXT, or Markdown in the sidebar for grounded answers."),
-        ("🌐", "Live Web Search", "Tavily web search for real-time information and summaries."),
+        ("⚡", "Smart Routing",   "Automatically picks between RAG, web search, or direct LLM based on your query."),
+        ("📚", "RAG Engine",      "Upload PDFs, TXT, or Markdown via the sidebar for grounded, cited answers."),
+        ("🌐", "Live Web Search", "Tavily-powered web search for real-time information and summaries."),
     ]
     for col, (icon, title, desc) in zip([c1, c2, c3], cards):
         with col:
